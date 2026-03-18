@@ -123,6 +123,14 @@ def fetch_all_submissions():
         page += 1
 
     print(f"  ✅  {len(all_results)} soumissions récupérées.")
+    # Afficher les vrais noms de champs de l'API (pour debug)
+    if all_results:
+        print("\n  📋  Noms de champs retournés par l'API :")
+        for k in sorted(all_results[0].keys()):
+            v = all_results[0].get(k)
+            if v is not None and str(v).strip() not in ("", "nan", "None"):
+                print(f"      {k!r:55s} = {str(v)[:40]!r}")
+        print()
     return all_results
 
 
@@ -130,12 +138,40 @@ def fetch_all_submissions():
 #  ── FONCTIONS UTILITAIRES ──
 # ══════════════════════════════════════════════════════════════
 
+def normalize(s):
+    """Normalise une clé : minuscules, accents retirés, espaces→underscores."""
+    import unicodedata
+    s = str(s).lower().strip()
+    s = unicodedata.normalize("NFD", s)
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+    s = re.sub(r"[^a-z0-9]+", "_", s).strip("_")
+    return s
+
+# Cache de mapping normalisé, construit à la première soumission
+_NORM_CACHE = {}
+
 def get_field(row, *keys):
-    """Retourne la première valeur non-vide parmi les clés fournies."""
+    """Retourne la première valeur non-vide parmi les clés fournies.
+    Cherche d'abord la clé exacte, puis la version normalisée."""
+    global _NORM_CACHE
+
+    # Construire le cache normalisé si vide
+    if not _NORM_CACHE and row:
+        for k in row.keys():
+            _NORM_CACHE[normalize(k)] = k
+
     for k in keys:
+        # 1. Correspondance exacte
         v = row.get(k)
         if v is not None and str(v).strip() not in ("", "nan", "None", "N/A"):
             return v
+        # 2. Correspondance normalisée
+        nk = normalize(k)
+        real_key = _NORM_CACHE.get(nk)
+        if real_key:
+            v = row.get(real_key)
+            if v is not None and str(v).strip() not in ("", "nan", "None", "N/A"):
+                return v
     return ""
 
 def parse_date(row):
