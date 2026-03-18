@@ -1,0 +1,56 @@
+name: 🔄 Mise à jour dashboard KoboToolbox
+
+on:
+  # ── Déclenchement automatique toutes les heures ──
+  schedule:
+    - cron: "0 * * * *"   # à chaque heure pile (UTC)
+
+  # ── Déclenchement manuel depuis l'onglet Actions de GitHub ──
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Raison du déclenchement manuel (optionnel)"
+        required: false
+        default: "Mise à jour manuelle"
+
+jobs:
+  update-dashboard:
+    name: Régénérer index.html depuis Kobo
+    runs-on: ubuntu-latest
+
+    # Permissions pour que le workflow puisse committer dans le repo
+    permissions:
+      contents: write
+
+    steps:
+
+      # 1. Récupérer le code du repo
+      - name: 📥 Checkout du repo
+        uses: actions/checkout@v4
+
+      # 2. Installer Python 3.11
+      - name: 🐍 Configurer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # 3. Installer les dépendances
+      - name: 📦 Installer les dépendances Python
+        run: pip install requests
+
+      # 4. Lancer le script de génération
+      #    Le token est injecté comme variable d'environnement (jamais visible dans les logs)
+      - name: 🔄 Générer le dashboard
+        env:
+          KOBO_TOKEN: ${{ secrets.KOBO_TOKEN }}
+        run: python generate_dashboard.py
+
+      # 5. Committer et pousser le HTML régénéré
+      - name: 📤 Committer et pousser index.html
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          # Ne committer que s'il y a des changements
+          git diff --cached --quiet || git commit -m "📊 Dashboard mis à jour — $(date -u '+%d/%m/%Y %H:%Mh UTC')"
+          git push
