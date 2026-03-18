@@ -70,7 +70,7 @@ F = {
     "si_visite":    "group_nz8yn94/Si_Visite",
     "si_vente":     "group_nz8yn94/Si_vente",
 
-    # Quantités vendues
+    # Quantités vendues — plusieurs variantes selon la version du formulaire
     "bouteilles":   "group_nz8yn94/Nbre_de_bouteille_livr_",
     "cartons_boite":"group_nz8yn94/Nbre_de_carton_livr_",
 
@@ -123,13 +123,21 @@ def fetch_all_submissions():
         page += 1
 
     print(f"  ✅  {len(all_results)} soumissions récupérées.")
-    # Afficher les vrais noms de champs de l'API (pour debug)
+    # Debug : chercher les champs carton/bouteille dans TOUTES les soumissions
     if all_results:
-        print("\n  📋  Noms de champs retournés par l'API :")
-        for k in sorted(all_results[0].keys()):
-            v = all_results[0].get(k)
-            if v is not None and str(v).strip() not in ("", "nan", "None"):
-                print(f"      {k!r:55s} = {str(v)[:40]!r}")
+        print("\n  🔍  Recherche champs carton/bouteille dans TOUTES les soumissions :")
+        found = {}
+        for row in all_results:
+            for k, v in row.items():
+                if any(x in k.lower() for x in ["carton", "bouteill", "nbre"]):
+                    sv = str(v).strip()
+                    if sv not in ("", "nan", "None", "0", "0.0") and k not in found:
+                        found[k] = sv
+        if found:
+            for k, v in sorted(found.items()):
+                print(f"      {k!r:60s} = {v[:40]!r}")
+        else:
+            print("      ⚠️  Aucun champ carton/bouteille trouvé !")
         print()
     return all_results
 
@@ -224,15 +232,34 @@ def parse_gps(row):
 
 def calc_cartons(row):
     """Calcule les cartons.
-    - 'Nbre de carton livre'    = cartons directs
-    - 'Nbre de bouteille livre' = bouteilles (converties si pas de cartons)
+    Cherche dans tous les groupes possibles car le champ a été ajouté
+    dans une version ultérieure du formulaire (groupe différent).
+    - Cartons directs
+    - Bouteilles / 12
     """
-    cartons_direct = parse_float(get_field(row, F["cartons_boite"]))
-    bouteilles     = parse_float(get_field(row, F["bouteilles"]))
+    # Chercher cartons dans tous les groupes possibles
+    cartons_direct = parse_float(get_field(
+        row,
+        F["cartons_boite"],                              # group_nz8yn94/Nbre_de_carton_livr_
+        "group_nz8yn94/Nbre_de_carton_livr_",
+        "group_nz8yn94/Nbre_de_carton_livr",
+        "Nbre_de_carton_livr_",
+        "Nbre_de_carton_livr",
+    ))
+    # Chercher bouteilles dans tous les groupes possibles
+    bouteilles = parse_float(get_field(
+        row,
+        F["bouteilles"],                                 # group_nz8yn94/Nbre_de_bouteille_livr_
+        "group_nz8yn94/Nbre_de_bouteille_livr_",
+        "group_nz8yn94/Nbre_de_bouteille_livr",
+        "Nbre_de_bouteille_livr_",
+        "Nbre_de_bouteille_livr",
+        "Nbre_bouteille_livr_",
+    ))
     if cartons_direct > 0:
         return cartons_direct, cartons_direct, bouteilles
     if bouteilles > 0:
-        return bouteilles / BOUTEILLES_PAR_CARTON, 0.0, bouteilles
+        return round(bouteilles / BOUTEILLES_PAR_CARTON, 4), 0.0, bouteilles
     return 0.0, 0.0, 0.0
 
 
