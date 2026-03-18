@@ -50,48 +50,48 @@ STAFF_COLORS = [
 
 F = {
     # Champ date de la soumission
-    "date":         "Date",
+    "date":         "group_cu0zu45/Date",
 
     # Identification du commercial
-    "staff":        "Nom et Prénoms Staffs",
+    "staff":        "group_cu0zu45/Nom_et_Pr_noms_Staffs",
 
     # Cible / client visité
-    "cible":        "Nom de la Cible / raison sociale",
+    "cible":        "group_ay2zj05/Nom_de_la_Cible_raison_sociale",
 
     # Nature / type de client
-    "nature":       "Nature de la cible / raison sociale",
+    "nature":       "group_ay2zj05/Nature_de_la_cible_raison_sociale",
 
     # Zone géographique
-    "zone":         "Zone",
-    "zone_op":      "Zone opérationnelle",
+    "zone":         "group_cu0zu45/Zone",
+    "zone_op":      "group_cu0zu45/Zone_op_rationnelle",
 
     # Type d'action effectuée
-    "action":       "Action menée",
-    "si_visite":    "Si Visite",
-    "si_vente":     "Si vente",
+    "action":       "group_nz8yn94/Action_men_e",
+    "si_visite":    "group_nz8yn94/Si_Visite",
+    "si_vente":     "group_nz8yn94/Si_vente",
 
     # Quantités vendues
-    "bouteilles":   "Nbre de bouteille livré",
-    "cartons_boite":"Nbre de carton livré",
+    "bouteilles":   "group_nz8yn94/Nbre_de_bouteille_livr_",
+    "cartons_boite":"group_nz8yn94/Nbre_de_carton_livr_",
 
     # Montant financier (FCFA)
-    "montant":      "Valeur",
+    "montant":      "group_nz8yn94/Valeur",
 
     # Mode de paiement
-    "paiement":     "Mode de paiement",
+    "paiement":     "group_nz8yn94/Mode_de_paiement",
 
     # Contact / interlocuteur
-    "contact":      "Contact du propriétaire",
-    "interlocuteur":"Nom de l'Interlocuteur",
-    "statut_interl":"Statut de l'interlocuteur",
+    "contact":      "group_ay2zj05/Contact_du_propri_taire",
+    "interlocuteur":"group_ay2zj05/Nom_de_l_Interlocuteur",
+    "statut_interl":"group_ay2zj05/Statut_de_l_interlocuteur",
 
     # Observation
-    "observation":  "Observation / Recommandations",
+    "observation":  "Observation_Recommandations",
 
-    # GPS — champs séparés dans ce formulaire
+    # GPS
     "gps":          "_geolocation",
-    "lat":          "_Localisation_latitude",
-    "lon":          "_Localisation_longitude",
+    "lat":          "group_ay2zj05/_Localisation_latitude",
+    "lon":          "group_ay2zj05/_Localisation_longitude",
 }
 
 # Nombre de bouteilles par carton
@@ -237,6 +237,47 @@ def calc_cartons(row):
 
 
 # ══════════════════════════════════════════════════════════════
+#  ── NORMALISATION DES VALEURS KOBO ──
+#  L'API retourne des codes internes (ex: "livr__pay", "gms")
+#  On les traduit en labels lisibles.
+# ══════════════════════════════════════════════════════════════
+
+NATURE_MAP = {
+    "gms": "GMS", "grossiste": "Grossiste", "hotel": "Hotel",
+    "h_tel": "Hotel", "restaurant": "Restaurant", "autres": "Autres",
+}
+ACTION_MAP = {
+    "visite": "Visite", "prospection": "Prospection",
+    "prospection_visite": "Prospection + Visite",
+}
+SI_VISITE_MAP = {
+    "vente": "Vente", "option_1": "Vente", "livraison": "Livraison",
+    "dlv": "DLV", "destockage": "Déstockage", "degustation": "Dégustation",
+    "gestion_reclamations": "Gestion réclamations", "autres": "Autres",
+}
+SI_VENTE_MAP = {
+    "livr__pay": "Livré payé", "livr_pay": "Livré payé",
+    "livré_payé": "Livré payé", "livre_paye": "Livré payé",
+    "livr__non_pay": "Livré non payé", "livr_non_pay": "Livré non payé",
+    "livré_non_payé": "Livré non payé", "livre_non_paye": "Livré non payé",
+    "credit": "Livré non payé", "cr_dit": "Livré non payé",
+}
+
+def map_value(val, mapping):
+    """Traduit un code API en label lisible."""
+    if not val:
+        return ""
+    key = str(val).lower().strip()
+    return mapping.get(key, str(val).capitalize())
+
+def normalize_staff(val):
+    """Capitalise correctement le nom du staff (ex: 'gautier_batcho' → 'Gautier Batcho')."""
+    if not val:
+        return "Inconnu"
+    # Remplacer underscores par espaces et capitaliser chaque mot
+    return " ".join(w.capitalize() for w in str(val).replace("_", " ").split())
+
+# ══════════════════════════════════════════════════════════════
 #  ── TRANSFORMATION DES DONNÉES ──
 # ══════════════════════════════════════════════════════════════
 
@@ -263,14 +304,14 @@ def transform(submissions):
 
     for row in submissions:
         d         = parse_date(row)
-        staff     = str(get_field(row, F["staff"])).strip()
+        staff     = normalize_staff(get_field(row, F["staff"]))
         cible     = str(get_field(row, F["cible"])).strip()
-        nature    = str(get_field(row, F["nature"])).strip()
+        nature    = map_value(get_field(row, F["nature"]), NATURE_MAP)
         zone      = str(get_field(row, F["zone"])).strip()
         zone_op   = str(get_field(row, F["zone_op"])).strip()
-        action    = str(get_field(row, F["action"])).strip()
-        si_visite = str(get_field(row, F["si_visite"])).strip()
-        si_vente  = str(get_field(row, F["si_vente"])).strip()
+        action    = map_value(get_field(row, F["action"]), ACTION_MAP)
+        si_visite = map_value(get_field(row, F["si_visite"]), SI_VISITE_MAP)
+        si_vente  = map_value(get_field(row, F["si_vente"]), SI_VENTE_MAP)
         obs       = str(get_field(row, F["observation"])).strip()
         contact   = str(get_field(row, F["contact"])).strip()
         interl    = str(get_field(row, F["interlocuteur"])).strip()
