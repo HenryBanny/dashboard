@@ -70,9 +70,9 @@ F = {
     "si_visite":    "group_nz8yn94/Si_Visite",
     "si_vente":     "group_nz8yn94/Si_vente",
 
-    # Quantités vendues — plusieurs variantes selon la version du formulaire
-    "bouteilles":   "group_nz8yn94/Nbre_de_bouteille_livr_",
-    "cartons_boite":"group_nz8yn94/Nbre_de_carton_livr_",
+    # Quantités vendues
+    "bouteilles":   "group_nz8yn94/Nbre_de_bouteille_livr",
+    "cartons_boite":"group_nz8yn94/Nbre_de_carton_livr",
 
     # Montant financier (FCFA)
     "montant":      "group_nz8yn94/Valeur",
@@ -237,25 +237,10 @@ def calc_cartons(row):
     - Cartons directs
     - Bouteilles / 12
     """
-    # Chercher cartons dans tous les groupes possibles
-    cartons_direct = parse_float(get_field(
-        row,
-        F["cartons_boite"],                              # group_nz8yn94/Nbre_de_carton_livr_
-        "group_nz8yn94/Nbre_de_carton_livr_",
-        "group_nz8yn94/Nbre_de_carton_livr",
-        "Nbre_de_carton_livr_",
-        "Nbre_de_carton_livr",
-    ))
-    # Chercher bouteilles dans tous les groupes possibles
-    bouteilles = parse_float(get_field(
-        row,
-        F["bouteilles"],                                 # group_nz8yn94/Nbre_de_bouteille_livr_
-        "group_nz8yn94/Nbre_de_bouteille_livr_",
-        "group_nz8yn94/Nbre_de_bouteille_livr",
-        "Nbre_de_bouteille_livr_",
-        "Nbre_de_bouteille_livr",
-        "Nbre_bouteille_livr_",
-    ))
+    # Cartons directs
+    cartons_direct = parse_float(get_field(row, F["cartons_boite"]))
+    # Bouteilles → diviser par 12
+    bouteilles     = parse_float(get_field(row, F["bouteilles"]))
     if cartons_direct > 0:
         return cartons_direct, cartons_direct, bouteilles
     if bouteilles > 0:
