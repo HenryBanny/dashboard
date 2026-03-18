@@ -49,49 +49,49 @@ STAFF_COLORS = [
 # ══════════════════════════════════════════════════════════════
 
 F = {
-    # Champ date de la soumission (format YYYY-MM-DD ou datetime ISO)
-    "date":         "_submission_time",   # fallback : "date_activite"
+    # Champ date de la soumission
+    "date":         "Date",
 
     # Identification du commercial
-    "staff":        "Nom_du_commercial",  # ex: "staff", "commercial", "nom_agent"
+    "staff":        "Nom et Prénoms Staffs",
 
     # Cible / client visité
-    "cible":        "Raison_sociale",     # ex: "nom_client", "cible", "enseigne"
+    "cible":        "Nom de la Cible / raison sociale",
 
     # Nature / type de client
-    "nature":       "Nature_du_client",   # ex: "type_client", "categorie"
+    "nature":       "Nature de la cible / raison sociale",
 
     # Zone géographique
-    "zone":         "Zone",               # ex: "zone_ville", "secteur"
-    "zone_op":      "Zone_operationnelle",# ex: "zone_op", "territoire"
+    "zone":         "Zone",
+    "zone_op":      "Zone opérationnelle",
 
     # Type d'action effectuée
-    "action":       "Type_daction",       # ex: "action", "type_visite"
-    "si_visite":    "Si_visite",          # ex: "resultat_visite"
-    "si_vente":     "Si_vente",           # ex: "type_livraison", "modalite_vente"
+    "action":       "Action menée",
+    "si_visite":    "Si Visite",
+    "si_vente":     "Si vente",
 
     # Quantités vendues
-    "bouteilles":   "Nombre_de_bouteilles",
-    "cartons_boite":"Cartons_en_boite",
+    "bouteilles":   "Nbre de bouteille livré",
+    "cartons_boite":"Nbre de carton livré",
 
     # Montant financier (FCFA)
-    "montant":      "Montant_FCFA",       # ex: "montant", "valeur_vente", "ca"
+    "montant":      "Valeur",
 
     # Mode de paiement
-    "paiement":     "Mode_de_paiement",
+    "paiement":     "Mode de paiement",
 
     # Contact / interlocuteur
-    "contact":      "Contact",
-    "interlocuteur":"Interlocuteur",
-    "statut_interl":"Statut_interlocuteur",
+    "contact":      "Contact du propriétaire",
+    "interlocuteur":"Nom de l'Interlocuteur",
+    "statut_interl":"Statut de l'interlocuteur",
 
     # Observation
-    "observation":  "Observation",
+    "observation":  "Observation / Recommandations",
 
-    # GPS
-    "gps":          "_geolocation",       # champ GPS KoboToolbox (liste [lat, lon])
-    "lat":          "GPS_Latitude",       # si champs séparés
-    "lon":          "GPS_Longitude",
+    # GPS — champs séparés dans ce formulaire
+    "gps":          "_geolocation",
+    "lat":          "_Localisation_latitude",
+    "lon":          "_Localisation_longitude",
 }
 
 # Nombre de bouteilles par carton
@@ -187,14 +187,17 @@ def parse_gps(row):
     return None, None
 
 def calc_cartons(row):
-    """Calcule les cartons à partir des bouteilles ou du champ direct."""
-    bouteilles = parse_float(get_field(row, F["bouteilles"], "bouteilles", "nb_bouteilles"))
-    cartons_boite = parse_float(get_field(row, F["cartons_boite"], "cartons_boite"))
+    """Calcule les cartons.
+    - 'Nbre de carton livre'    = cartons directs
+    - 'Nbre de bouteille livre' = bouteilles (converties si pas de cartons)
+    """
+    cartons_direct = parse_float(get_field(row, F["cartons_boite"]))
+    bouteilles     = parse_float(get_field(row, F["bouteilles"]))
+    if cartons_direct > 0:
+        return cartons_direct, cartons_direct, bouteilles
     if bouteilles > 0:
-        return bouteilles / BOUTEILLES_PAR_CARTON, cartons_boite, bouteilles
-    # Chercher un champ cartons direct
-    cartons_direct = parse_float(get_field(row, "cartons", "nb_cartons", "quantite_cartons"))
-    return cartons_direct, cartons_boite, bouteilles
+        return bouteilles / BOUTEILLES_PAR_CARTON, 0.0, bouteilles
+    return 0.0, 0.0, 0.0
 
 
 # ══════════════════════════════════════════════════════════════
@@ -224,20 +227,20 @@ def transform(submissions):
 
     for row in submissions:
         d         = parse_date(row)
-        staff     = str(get_field(row, F["staff"], "staff", "nom_commercial", "commercial")).strip()
-        cible     = str(get_field(row, F["cible"], "cible", "raison_sociale", "nom_client")).strip()
-        nature    = str(get_field(row, F["nature"], "nature", "type_client")).strip()
-        zone      = str(get_field(row, F["zone"], "zone", "ville")).strip()
-        zone_op   = str(get_field(row, F["zone_op"], "zone_op", "zone_operationnelle")).strip()
-        action    = str(get_field(row, F["action"], "action", "type_action", "type_visite")).strip()
-        si_visite = str(get_field(row, F["si_visite"], "si_visite", "resultat_visite")).strip()
-        si_vente  = str(get_field(row, F["si_vente"], "si_vente", "type_livraison")).strip()
-        obs       = str(get_field(row, F["observation"], "observation", "obs", "commentaire")).strip()
-        contact   = str(get_field(row, F["contact"], "contact", "telephone")).strip()
-        interl    = str(get_field(row, F["interlocuteur"], "interlocuteur", "nom_contact")).strip()
-        statut_i  = str(get_field(row, F["statut_interl"], "statut_interlocuteur", "statut")).strip()
-        paiement  = str(get_field(row, F["paiement"], "paiement", "mode_paiement")).strip()
-        montant   = parse_float(get_field(row, F["montant"], "montant", "montant_fcfa", "valeur"))
+        staff     = str(get_field(row, F["staff"])).strip()
+        cible     = str(get_field(row, F["cible"])).strip()
+        nature    = str(get_field(row, F["nature"])).strip()
+        zone      = str(get_field(row, F["zone"])).strip()
+        zone_op   = str(get_field(row, F["zone_op"])).strip()
+        action    = str(get_field(row, F["action"])).strip()
+        si_visite = str(get_field(row, F["si_visite"])).strip()
+        si_vente  = str(get_field(row, F["si_vente"])).strip()
+        obs       = str(get_field(row, F["observation"])).strip()
+        contact   = str(get_field(row, F["contact"])).strip()
+        interl    = str(get_field(row, F["interlocuteur"])).strip()
+        statut_i  = str(get_field(row, F["statut_interl"])).strip()
+        paiement  = str(get_field(row, F["paiement"])).strip()
+        montant   = parse_float(get_field(row, F["montant"]))
         cartons, cartons_boite, bouteilles = calc_cartons(row)
         lat, lon  = parse_gps(row)
 
