@@ -268,11 +268,24 @@ SI_VISITE_MAP = {
     "gestion_reclamations": "Gestion réclamations", "autres": "Autres",
 }
 SI_VENTE_MAP = {
-    "livr__pay": "Livré payé", "livr_pay": "Livré payé",
-    "livré_payé": "Livré payé", "livre_paye": "Livré payé",
-    "livr__non_pay": "Livré non payé", "livr_non_pay": "Livré non payé",
+    # Livré payé
+    "livr__pay": "Livré payé",       "livr_pay": "Livré payé",
+    "livr__pay__cash_": "Livré payé (cash)", "livr_pay_cash": "Livré payé (cash)",
+    "livré_payé": "Livré payé",      "livre_paye": "Livré payé",
+    "livr__pay__cash": "Livré payé (cash)",
+    # Livré non payé
+    "livr__non_pay": "Livré non payé",
+    "livr__non_pay__d_p_t_vente_": "Livré non payé (dépôt vente)",
+    "livr__non_pay__depot_vente_": "Livré non payé (dépôt vente)",
+    "livr_non_pay": "Livré non payé",
     "livré_non_payé": "Livré non payé", "livre_non_paye": "Livré non payé",
-    "credit": "Livré non payé", "cr_dit": "Livré non payé",
+    "credit": "Livré non payé",      "cr_dit": "Livré non payé",
+    # Payé non livré
+    "pay__non_livr_": "Payé non livré",
+    "pay__non_livr__recouvrement_": "Payé non livré (recouvrement)",
+    "pay_non_livr": "Payé non livré",
+    "paye_non_livre": "Payé non livré",
+    "recouvrement": "Payé non livré (recouvrement)",
 }
 
 def map_value(val, mapping):
@@ -385,8 +398,8 @@ def transform(submissions):
             "staff": staff, "date": d, "cible": cible, "nature": nature,
             "zone_op": zone_op, "zone": zone, "action": action,
             "si_visite": si_visite, "si_vente": si_vente,
-            "cartons": round(cartons, 4), "cartons_boite": round(cartons_boite, 4),
-            "bouteilles": round(bouteilles, 4), "valeur": montant,
+            "cartons": round(cartons, 2), "cartons_boite": round(cartons_boite, 2),
+            "bouteilles": round(bouteilles, 2), "valeur": montant,
             "paiement": paiement, "obs": obs,
             "contact": contact, "interl": interl, "statut": statut_i,
             "lat": lat, "lon": lon,
@@ -415,7 +428,7 @@ def transform(submissions):
     # ── Finalisation STAFF (trié par activités desc) ──
     STAFF = [
         {"name": s, "activites": v["activites"],
-         "cartons": round(v["cartons"], 4), "montant": round(v["montant"], 2),
+         "cartons": round(v["cartons"], 2), "montant": round(v["montant"], 2),
          "color": staff_color_map[s]}
         for s, v in sorted(staff_map.items(), key=lambda x: -x[1]["activites"])
     ]
