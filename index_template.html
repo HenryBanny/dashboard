@@ -2186,19 +2186,18 @@ function renderSuiviTable() {
     const v = r.si_vente || '';
     const c = r.cartons  || 0;
     const m = r.valeur   || 0;
-    // Catégorisation robuste basée sur les valeurs réelles de KoboToolbox
-    const vl = v.toLowerCase();
-    if (vl.includes('recouvrement')) {
-      // "Payé non livré (recouvrement)" = encaissement sur livraison déjà faite
-      // → montant uniquement, PAS de cartons
-      map[key].pnl_c += 0; map[key].pnl_m += m;
-    } else if (vl.includes('payé non livr') || vl.includes('paye non livr')) {
-      // "Payé non livré" = commande payée mais pas encore livrée → cartons + montant
+    // Catégorisation — comparaison sans accents pour fiabilité JS
+    const vNorm = v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    if (vNorm.includes('recouvrement')) {
+      // "Payé non livré (recouvrement)" = encaissement → montant seulement, PAS de cartons
+      map[key].pnl_m += m;
+    } else if (vNorm.includes('paye non livr') || vNorm.includes('pay non livr')) {
+      // "Payé non livré" = commande payée non encore livrée → cartons + montant
       map[key].pnl_c += c; map[key].pnl_m += m;
-    } else if (vl.includes('livr') && vl.includes('non pay')) {
+    } else if (vNorm.includes('livr') && vNorm.includes('non pay')) {
       // "Livré non payé" et "Livré non payé (dépôt vente)"
       map[key].lnp_c += c; map[key].lnp_m += m;
-    } else if (vl.includes('livr') && (vl.includes('pay') || vl.includes('cash'))) {
+    } else if (vNorm.includes('livr') && (vNorm.includes('pay') || vNorm.includes('cash'))) {
       // "Livré payé" et "Livré payé (cash)"
       map[key].lp_c += c; map[key].lp_m += m;
     } else {
