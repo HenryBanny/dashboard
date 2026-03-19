@@ -352,6 +352,7 @@
     <button class="nav-tab" onclick="showPage('contacts', this)">📒 Contacts <span class="nav-badge" id="badge-contacts" style="background:#10b981">—</span></button>
     <button class="nav-tab" onclick="showPage('carte', this)">🗺️ Carte <span id="badge-carte" style="background:#0ea5e9;color:#fff;font-size:11px;padding:2px 7px;border-radius:10px;margin-left:4px"></span></button>
     <button class="nav-tab" onclick="showPage('credit', this)">💳 Crédit <span id="badge-credit" style="background:#ef4444;color:#fff;font-size:11px;padding:2px 7px;border-radius:10px;margin-left:4px"></span> <span class="nav-badge" id="badge-contacts" style="background:#10b981">—</span></button>
+    <button class="nav-tab" onclick="showPage('suivi', this)">📈 Suivi Ventes <span id="badge-suivi" style="background:#8b5cf6;color:#fff;font-size:11px;padding:2px 7px;border-radius:10px;margin-left:4px"></span></button>
     <div class="header-status" id="header-status"><span style="color:#10b981;font-weight:700">● Données chargées</span>&nbsp;&nbsp;2 851 activités · Jan → Mar 2026</div>
   </div>
 </header>
@@ -744,6 +745,47 @@
   </div>
 
 
+  <!-- ════════════════════════════ PAGE: SUIVI VENTES ════════════════════════════ -->
+  <div id="page-suivi" class="page">
+    <div class="filter-bar" style="margin-bottom:12px;gap:10px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:13px;font-weight:700;color:#64748b">📈 Suivi des ventes de cartons — date par date</span>
+      <select id="suivi-staff-filter" onchange="renderSuiviTable()" style="border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:13px;background:#fff">
+        <option value="">Tous les staffs</option>
+      </select>
+      <input type="date" id="suivi-date-from" onchange="renderSuiviTable()" style="border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:13px">
+      <input type="date" id="suivi-date-to"   onchange="renderSuiviTable()" style="border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:13px">
+      <button onclick="resetSuiviFilters()" class="btn-reset">✕ Réinitialiser</button>
+      <div style="margin-left:auto;display:flex;gap:14px;font-size:12px;color:#64748b">
+        <span id="suivi-total-lp" style="color:#10b981;font-weight:700"></span>
+        <span id="suivi-total-lnp" style="color:#ef4444;font-weight:700"></span>
+        <span id="suivi-total-pnl" style="color:#f59e0b;font-weight:700"></span>
+        <span id="suivi-total-all" style="color:#3b82f6;font-weight:700"></span>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="table-wrap">
+        <table id="suiviTable">
+          <thead>
+            <tr>
+              <th style="width:110px">Date</th>
+              <th style="width:160px">Staff</th>
+              <th style="text-align:right;color:#10b981">✅ Livré payé<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
+              <th style="text-align:right;color:#10b981">💰 Montant LP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
+              <th style="text-align:right;color:#ef4444">⏳ Livré non payé<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
+              <th style="text-align:right;color:#ef4444">💸 Montant LNP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
+              <th style="text-align:right;color:#f59e0b">📦 Payé non livré<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
+              <th style="text-align:right;color:#f59e0b">💵 Montant PNL<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
+              <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL cartons</th>
+              <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL FCFA</th>
+            </tr>
+          </thead>
+          <tbody id="suiviTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 <!-- MODAL CONTACTS -->
 <div class="modal-overlay" id="cModalOverlay" onclick="cCloseModal(event)">
   <div class="modal" style="max-width:540px">
@@ -904,6 +946,47 @@ function processData(){}
   </div>
 
 </div>
+
+  <!-- ════════════════════════════ PAGE: SUIVI VENTES ════════════════════════════ -->
+  <div id="page-suivi" class="page">
+    <div class="filter-bar" style="margin-bottom:12px;gap:10px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:13px;font-weight:700;color:#64748b">📈 Suivi des ventes de cartons — date par date</span>
+      <select id="suivi-staff-filter" onchange="renderSuiviTable()" style="border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:13px;background:#fff">
+        <option value="">Tous les staffs</option>
+      </select>
+      <input type="date" id="suivi-date-from" onchange="renderSuiviTable()" style="border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:13px">
+      <input type="date" id="suivi-date-to"   onchange="renderSuiviTable()" style="border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:13px">
+      <button onclick="resetSuiviFilters()" class="btn-reset">✕ Réinitialiser</button>
+      <div style="margin-left:auto;display:flex;gap:14px;font-size:12px;color:#64748b">
+        <span id="suivi-total-lp" style="color:#10b981;font-weight:700"></span>
+        <span id="suivi-total-lnp" style="color:#ef4444;font-weight:700"></span>
+        <span id="suivi-total-pnl" style="color:#f59e0b;font-weight:700"></span>
+        <span id="suivi-total-all" style="color:#3b82f6;font-weight:700"></span>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="table-wrap">
+        <table id="suiviTable">
+          <thead>
+            <tr>
+              <th style="width:110px">Date</th>
+              <th style="width:160px">Staff</th>
+              <th style="text-align:right;color:#10b981">✅ Livré payé<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
+              <th style="text-align:right;color:#10b981">💰 Montant LP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
+              <th style="text-align:right;color:#ef4444">⏳ Livré non payé<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
+              <th style="text-align:right;color:#ef4444">💸 Montant LNP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
+              <th style="text-align:right;color:#f59e0b">📦 Payé non livré<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
+              <th style="text-align:right;color:#f59e0b">💵 Montant PNL<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
+              <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL cartons</th>
+              <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL FCFA</th>
+            </tr>
+          </thead>
+          <tbody id="suiviTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
 <!-- MODAL CONTACTS -->
 <div class="modal-overlay" id="cModalOverlay" onclick="cCloseModal(event)">
@@ -1074,14 +1157,23 @@ function initPieCharts() {
 // STAFF TABLE
 // ══════════════════════════════════════════════════════════════
 function renderStaffTable() {
+  // STAFF est déjà filtré par applyDateFilter/applyStaffFilter — pas besoin de refiltrer
   const sorted = [...STAFF].sort((a,b)=>b.montant-a.montant);
+  const total = {activites:0, cartons:0, montant:0};
+  sorted.forEach(s=>{total.activites+=s.activites;total.cartons+=s.cartons;total.montant+=s.montant;});
   document.getElementById('staffTableBody').innerHTML = sorted.map((s,i)=>`
     <tr>
       <td><span class="staff-dot" style="background:${s.color}"></span><strong>${s.name}</strong></td>
       <td>${badge(s.activites,'#3b82f6')}</td>
-      <td>${badge(s.cartons,'#10b981')}</td>
+      <td>${badge(Math.round(s.cartons*100)/100,'#10b981')}</td>
       <td style="font-weight:700;color:#f59e0b">${fmtFcfa(s.montant)}</td>
-    </tr>`).join('');
+    </tr>`).join('') +
+    `<tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e2e8f0">
+      <td style="color:#1e293b">TOTAL</td>
+      <td>${badge(total.activites,'#3b82f6')}</td>
+      <td>${badge(Math.round(total.cartons*100)/100,'#10b981')}</td>
+      <td style="font-weight:800;color:#f59e0b">${fmtFcfa(total.montant)}</td>
+    </tr>`;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1997,5 +2089,158 @@ document.addEventListener('DOMContentLoaded', function(){
   if(typeof cRenderTable==='function')      cRenderTable();
 });
 </script>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// PAGE SUIVI VENTES
+// ══════════════════════════════════════════════════════════════
+
+function initSuiviPage() {
+  // Remplir le filtre staff
+  const sel = document.getElementById('suivi-staff-filter');
+  if (sel && sel.options.length === 1) {
+    const staffs = [...new Set(GPS_DATA.map(r=>r.staff).filter(Boolean))].sort();
+    staffs.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s; o.textContent = s;
+      sel.appendChild(o);
+    });
+  }
+  // Dates min/max
+  const dates = GPS_DATA.map(r=>r.date).filter(Boolean).sort();
+  const fromEl = document.getElementById('suivi-date-from');
+  const toEl   = document.getElementById('suivi-date-to');
+  if (fromEl && !fromEl.value) fromEl.value = dates[0] || '';
+  if (toEl   && !toEl.value)   toEl.value   = dates[dates.length-1] || '';
+  // Badge
+  const b = document.getElementById('badge-suivi');
+  if (b) b.textContent = GPS_DATA.filter(r=>r.cartons>0).length;
+  renderSuiviTable();
+}
+
+function resetSuiviFilters() {
+  document.getElementById('suivi-staff-filter').value = '';
+  const dates = GPS_DATA.map(r=>r.date).filter(Boolean).sort();
+  document.getElementById('suivi-date-from').value = dates[0] || '';
+  document.getElementById('suivi-date-to').value   = dates[dates.length-1] || '';
+  renderSuiviTable();
+}
+
+function fmtC(n) {
+  if (!n || n === 0) return '<span style="color:#cbd5e1">—</span>';
+  return '<strong>' + (Math.round(n*100)/100).toLocaleString('fr-FR') + '</strong>';
+}
+function fmtM(n) {
+  if (!n || n === 0) return '<span style="color:#cbd5e1">—</span>';
+  return new Intl.NumberFormat('fr-FR').format(Math.round(n));
+}
+
+function renderSuiviTable() {
+  const staffVal = (document.getElementById('suivi-staff-filter')||{}).value || '';
+  const dateFrom = (document.getElementById('suivi-date-from')||{}).value || '';
+  const dateTo   = (document.getElementById('suivi-date-to')||{}).value   || '';
+
+  // Filtrer les données avec cartons > 0
+  const rows = GPS_DATA.filter(r => {
+    if (!(r.cartons > 0)) return false;
+    if (staffVal && r.staff !== staffVal) return false;
+    if (dateFrom && r.date < dateFrom) return false;
+    if (dateTo   && r.date > dateTo)   return false;
+    return true;
+  });
+
+  // Agréger par date + staff
+  const map = {};
+  rows.forEach(r => {
+    const key = r.date + '||' + (r.staff||'');
+    if (!map[key]) map[key] = {
+      date: r.date, staff: r.staff||'',
+      lp_c:0, lp_m:0,   // livré payé
+      lnp_c:0, lnp_m:0, // livré non payé
+      pnl_c:0, pnl_m:0  // payé non livré
+    };
+    const v = r.si_vente || '';
+    const c = r.cartons  || 0;
+    const m = r.valeur   || 0;
+    if (v.includes('Livré payé') || v.includes('Livré payé')) {
+      map[key].lp_c += c; map[key].lp_m += m;
+    } else if (v.includes('non payé') || v.includes('non pay')) {
+      map[key].lnp_c += c; map[key].lnp_m += m;
+    } else if (v.includes('non livré') || v.includes('non livr') || v.includes('Payé non')) {
+      map[key].pnl_c += c; map[key].pnl_m += m;
+    } else {
+      // Non catégorisé → livré payé par défaut
+      map[key].lp_c += c; map[key].lp_m += m;
+    }
+  });
+
+  const entries = Object.values(map).sort((a,b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    return a.staff.localeCompare(b.staff);
+  });
+
+  // Totaux globaux
+  let tot = {lp_c:0,lp_m:0,lnp_c:0,lnp_m:0,pnl_c:0,pnl_m:0};
+  entries.forEach(e => {
+    tot.lp_c+=e.lp_c; tot.lp_m+=e.lp_m;
+    tot.lnp_c+=e.lnp_c; tot.lnp_m+=e.lnp_m;
+    tot.pnl_c+=e.pnl_c; tot.pnl_m+=e.pnl_m;
+  });
+  const totC = tot.lp_c+tot.lnp_c+tot.pnl_c;
+  const totM = tot.lp_m+tot.lnp_m+tot.pnl_m;
+
+  // Afficher les totaux dans le header
+  const se = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+  se('suivi-total-lp',  '✅ LP: ' + Math.round(tot.lp_c*100)/100 + ' ctn');
+  se('suivi-total-lnp', '⏳ LNP: ' + Math.round(tot.lnp_c*100)/100 + ' ctn');
+  se('suivi-total-pnl', '📦 PNL: ' + Math.round(tot.pnl_c*100)/100 + ' ctn');
+  se('suivi-total-all', '🔵 TOTAL: ' + Math.round(totC*100)/100 + ' ctn');
+
+  const COLORS = {lp:'#10b981', lnp:'#ef4444', pnl:'#f59e0b'};
+
+  // Générer les lignes
+  let html = entries.map((e,i) => {
+    const totRowC = e.lp_c + e.lnp_c + e.pnl_c;
+    const totRowM = e.lp_m + e.lnp_m + e.pnl_m;
+    return `<tr>
+      <td style="font-size:12px;color:#64748b;white-space:nowrap">${e.date}</td>
+      <td style="font-size:12px">${e.staff}</td>
+      <td style="text-align:right;color:#10b981">${fmtC(e.lp_c)}</td>
+      <td style="text-align:right;font-size:12px;color:#10b981">${fmtM(e.lp_m)}</td>
+      <td style="text-align:right;color:#ef4444">${fmtC(e.lnp_c)}</td>
+      <td style="text-align:right;font-size:12px;color:#ef4444">${fmtM(e.lnp_m)}</td>
+      <td style="text-align:right;color:#f59e0b">${fmtC(e.pnl_c)}</td>
+      <td style="text-align:right;font-size:12px;color:#f59e0b">${fmtM(e.pnl_m)}</td>
+      <td style="text-align:right;font-weight:700;color:#3b82f6">${fmtC(totRowC)}</td>
+      <td style="text-align:right;font-weight:700;color:#3b82f6;font-size:12px">${fmtM(totRowM)}</td>
+    </tr>`;
+  }).join('');
+
+  // Ligne de total
+  html += `<tr style="background:#f0f9ff;border-top:2px solid #3b82f6;font-weight:700">
+    <td colspan="2" style="font-weight:800;color:#1e293b">TOTAL GÉNÉRAL</td>
+    <td style="text-align:right;color:#10b981;font-weight:800">${Math.round(tot.lp_c*100)/100}</td>
+    <td style="text-align:right;color:#10b981;font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(tot.lp_m))}</td>
+    <td style="text-align:right;color:#ef4444;font-weight:800">${Math.round(tot.lnp_c*100)/100}</td>
+    <td style="text-align:right;color:#ef4444;font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(tot.lnp_m))}</td>
+    <td style="text-align:right;color:#f59e0b;font-weight:800">${Math.round(tot.pnl_c*100)/100}</td>
+    <td style="text-align:right;color:#f59e0b;font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(tot.pnl_m))}</td>
+    <td style="text-align:right;color:#3b82f6;font-weight:800">${Math.round(totC*100)/100}</td>
+    <td style="text-align:right;color:#3b82f6;font-size:12px;font-weight:800">${new Intl.NumberFormat('fr-FR').format(Math.round(totM))}</td>
+  </tr>`;
+
+  document.getElementById('suiviTableBody').innerHTML = html || '<tr><td colspan="10" style="text-align:center;color:#94a3b8;padding:30px">Aucune vente de cartons sur cette période</td></tr>';
+}
+
+// Initialiser quand on clique sur l'onglet
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.nav-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      if (tab.textContent.includes('Suivi')) setTimeout(initSuiviPage, 50);
+    });
+  });
+});
+</script>
+
 </body>
 </html>
