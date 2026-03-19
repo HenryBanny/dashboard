@@ -405,8 +405,9 @@ def transform(submissions):
             "lat": lat, "lon": lon,
         })
 
-        # ── CREDIT_DATA (livré non payé) ──
-        if "non payé" in si_vente.lower() or "credit" in si_vente.lower() or "crédit" in si_vente.lower():
+        # ── CREDIT_DATA (livré non payé + payé non livré) ──
+        # Le recouvrement ne génère pas de nouveaux cartons
+        if "non payé" in si_vente.lower() or "credit" in si_vente.lower() or "crédit" in si_vente.lower() or "non livr" in si_vente.lower():
             credit_rows.append({
                 "staff": staff, "date": d, "cible": cible, "nature": nature,
                 "zone_op": zone_op, "zone": zone, "action": action,
