@@ -1165,7 +1165,7 @@ function renderStaffTable() {
     <tr>
       <td><span class="staff-dot" style="background:${s.color}"></span><strong>${s.name}</strong></td>
       <td>${badge(s.activites,'#3b82f6')}</td>
-      <td>${badge(Math.round(s.cartons*100)/100,'#10b981')}</td>
+      <td>${badge(parseFloat(s.cartons.toFixed(2)),'#10b981')}</td>
       <td style="font-weight:700;color:#f59e0b">${fmtFcfa(s.montant)}</td>
     </tr>`).join('') +
     `<tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e2e8f0">
@@ -1512,42 +1512,66 @@ function setDateQuick(mode, btn) {
 }
 
 function applyDateFilter() {
-  if (!CLIENTS.length) return;
-  const range = getDateRange();
+  if (!GPS_DATA.length && !CLIENTS.length) return;
+  const range    = getDateRange();
   const staffSel = document.getElementById('dashboard-staff-filter');
   const staffVal = staffSel ? staffSel.value : '';
-  const filtered = CLIENTS.filter(r => {
+
+  // ── Reconstruire DAILY et STAFF depuis GPS_DATA (activités brutes) ──
+  const gpsFiltered = GPS_DATA.filter(r => {
+    if (staffVal && r.staff !== staffVal) return false;
+    if (!range) return true;
+    if (!r.date) return false;
+    const d = new Date(r.date);
+    return !isNaN(d) && d >= range.from && d <= range.to;
+  });
+
+  const dailyMap = {};
+  gpsFiltered.forEach(r => {
+    const d = r.date; if (!d) return;
+    if (!dailyMap[d]) dailyMap[d] = {date:d, activites:0, cartons:0, montant:0};
+    dailyMap[d].activites++;
+    dailyMap[d].cartons += r.cartons || 0;
+    dailyMap[d].montant += r.valeur  || 0;
+  });
+  DAILY = Object.values(dailyMap).sort((a,b) => a.date.localeCompare(b.date));
+
+  const staffMap = {};
+  gpsFiltered.forEach(r => {
+    const n = r.staff || ''; if (!n || n === 'nan') return;
+    if (!staffMap[n]) staffMap[n] = {name:n, activites:0, cartons:0, montant:0, color:STAFF_COLOR_MAP[n]||'#94a3b8'};
+    staffMap[n].activites++;
+    staffMap[n].cartons += r.cartons || 0;
+    staffMap[n].montant += r.valeur  || 0;
+  });
+  STAFF = Object.values(staffMap).sort((a,b) => b.activites - a.activites);
+
+  // KPIs depuis GPS_DATA filtré
+  const totCartons = gpsFiltered.reduce((s,r) => s + (r.cartons||0), 0);
+  const totMontant = gpsFiltered.reduce((s,r) => s + (r.valeur||0),  0);
+  const nbStaffs   = new Set(gpsFiltered.map(r=>r.staff).filter(Boolean)).size;
+  const nbCibles   = new Set(gpsFiltered.map(r=>r.cible).filter(Boolean)).size;
+
+  if (!gpsFiltered.length) {
+    updateDashboardKPIs(0,0,0,0,0);
+    rebuildCharts(); renderStaffTable();
+    filteredClients = []; renderClientTable(); return;
+  }
+
+  updateDashboardKPIs(gpsFiltered.length, totCartons, totMontant, nbStaffs, nbCibles);
+  rebuildCharts(); renderStaffTable();
+
+  // ── Filtrer aussi CLIENTS pour la table clients ──
+  const filteredClients2 = CLIENTS.filter(r => {
     if (staffVal && r.staff !== staffVal) return false;
     if (!range) return true;
     if (!r.derniere_visite) return false;
     const d = new Date(r.derniere_visite);
     return !isNaN(d) && d >= range.from && d <= range.to;
   });
-  if (!filtered.length) {
-    updateDashboardKPIs(0,0,0,0,0); DAILY=[]; STAFF=[];
-    rebuildCharts(); renderStaffTable(); filteredClients=[]; renderClientTable(); return;
-  }
-  const dailyMap={};
-  filtered.forEach(r=>{
-    const d=r.derniere_visite; if(!d) return;
-    if(!dailyMap[d]) dailyMap[d]={date:d,activites:0,cartons:0,montant:0};
-    dailyMap[d].activites++; dailyMap[d].cartons+=r.cartons||0; dailyMap[d].montant+=r.montant||0;
-  });
-  DAILY=Object.values(dailyMap).sort((a,b)=>a.date.localeCompare(b.date));
-  const staffMap={};
-  filtered.forEach(r=>{
-    const n=r.staff||''; if(!n||n==='nan') return;
-    if(!staffMap[n]) staffMap[n]={name:n,activites:0,cartons:0,montant:0,color:STAFF_COLOR_MAP[n]||'#94a3b8'};
-    staffMap[n].activites++; staffMap[n].cartons+=r.cartons||0; staffMap[n].montant+=r.montant||0;
-  });
-  STAFF=Object.values(staffMap).sort((a,b)=>b.activites-a.activites);
-  updateDashboardKPIs(filtered.length,
-    filtered.reduce((s,r)=>s+(r.cartons||0),0),
-    filtered.reduce((s,r)=>s+(r.montant||0),0),
-    new Set(filtered.map(r=>r.staff).filter(Boolean)).size,
-    new Set(filtered.map(r=>r.nom).filter(Boolean)).size);
-  rebuildCharts(); renderStaffTable();
-  filteredClients=filtered; currentPage=1; renderClientTable();
+  filteredClients = filteredClients2;
+  currentPage = 1;
+  renderClientTable();
 }
 function applyStaffFilter(){applyDateFilter();}
 
@@ -2162,12 +2186,17 @@ function renderSuiviTable() {
     const v = r.si_vente || '';
     const c = r.cartons  || 0;
     const m = r.valeur   || 0;
-    if (v.includes('Livré payé') || v.includes('Livré payé')) {
-      map[key].lp_c += c; map[key].lp_m += m;
-    } else if (v.includes('non payé') || v.includes('non pay')) {
-      map[key].lnp_c += c; map[key].lnp_m += m;
-    } else if (v.includes('non livré') || v.includes('non livr') || v.includes('Payé non')) {
+    // Catégorisation robuste basée sur les valeurs réelles de KoboToolbox
+    const vl = v.toLowerCase();
+    if (vl.includes('payé non livr') || vl.includes('paye non livr') || vl.includes('recouvrement')) {
+      // "Payé non livré" et "Payé non livré (recouvrement)"
       map[key].pnl_c += c; map[key].pnl_m += m;
+    } else if (vl.includes('livr') && vl.includes('non pay')) {
+      // "Livré non payé" et "Livré non payé (dépôt vente)"
+      map[key].lnp_c += c; map[key].lnp_m += m;
+    } else if (vl.includes('livr') && (vl.includes('pay') || vl.includes('cash'))) {
+      // "Livré payé" et "Livré payé (cash)"
+      map[key].lp_c += c; map[key].lp_m += m;
     } else {
       // Non catégorisé → livré payé par défaut
       map[key].lp_c += c; map[key].lp_m += m;
