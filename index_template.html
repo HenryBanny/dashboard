@@ -774,8 +774,8 @@
               <th style="text-align:right;color:#10b981">💰 Montant LP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
               <th style="text-align:right;color:#ef4444">⏳ Livré non payé<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
               <th style="text-align:right;color:#ef4444">💸 Montant LNP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
-              <th style="text-align:right;color:#f59e0b">📦 Payé non livré<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
-              <th style="text-align:right;color:#f59e0b">💵 Montant PNL<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
+              <th style="text-align:right;color:#f59e0b">📦 Payé non livré<br><span style="font-size:9px;font-weight:400">(cartons — hors recouvrement)</span></th>
+              <th style="text-align:right;color:#f59e0b">💵 Montant PNL<br><span style="font-size:9px;font-weight:400">(FCFA — recouvrement inclus)</span></th>
               <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL cartons</th>
               <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL FCFA</th>
             </tr>
@@ -976,8 +976,8 @@ function processData(){}
               <th style="text-align:right;color:#10b981">💰 Montant LP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
               <th style="text-align:right;color:#ef4444">⏳ Livré non payé<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
               <th style="text-align:right;color:#ef4444">💸 Montant LNP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
-              <th style="text-align:right;color:#f59e0b">📦 Payé non livré<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
-              <th style="text-align:right;color:#f59e0b">💵 Montant PNL<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
+              <th style="text-align:right;color:#f59e0b">📦 Payé non livré<br><span style="font-size:9px;font-weight:400">(cartons — hors recouvrement)</span></th>
+              <th style="text-align:right;color:#f59e0b">💵 Montant PNL<br><span style="font-size:9px;font-weight:400">(FCFA — recouvrement inclus)</span></th>
               <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL cartons</th>
               <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL FCFA</th>
             </tr>
@@ -2188,8 +2188,12 @@ function renderSuiviTable() {
     const m = r.valeur   || 0;
     // Catégorisation robuste basée sur les valeurs réelles de KoboToolbox
     const vl = v.toLowerCase();
-    if (vl.includes('payé non livr') || vl.includes('paye non livr') || vl.includes('recouvrement')) {
-      // "Payé non livré" et "Payé non livré (recouvrement)"
+    if (vl.includes('recouvrement')) {
+      // "Payé non livré (recouvrement)" = encaissement sur livraison déjà faite
+      // → montant uniquement, PAS de cartons
+      map[key].pnl_c += 0; map[key].pnl_m += m;
+    } else if (vl.includes('payé non livr') || vl.includes('paye non livr')) {
+      // "Payé non livré" = commande payée mais pas encore livrée → cartons + montant
       map[key].pnl_c += c; map[key].pnl_m += m;
     } else if (vl.includes('livr') && vl.includes('non pay')) {
       // "Livré non payé" et "Livré non payé (dépôt vente)"
