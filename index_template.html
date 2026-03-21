@@ -1131,22 +1131,50 @@ function switchBar(metric, btn) {
 // ══════════════════════════════════════════════════════════════
 // CHARTS: PIES
 // ══════════════════════════════════════════════════════════════
-function initPieCharts() {
-  // Actions
-  const actData = [{name:'Prospection',val:1816},{name:'Visite',val:723},{name:'Prosp+Visite',val:4}];
-  const actColors = ['#3b82f6','#10b981','#f59e0b'];
+function initPieCharts(sourceData) {
+  // Utiliser GPS_DATA filtré si fourni, sinon GPS_DATA complet
+  const src = sourceData || GPS_DATA;
+
+  // ── Actions ──
+  const actMap = {};
+  src.forEach(r => {
+    const a = r.action || 'Autre';
+    actMap[a] = (actMap[a]||0) + 1;
+  });
+  const actColors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
+  const actEntries = Object.entries(actMap).sort((a,b)=>b[1]-a[1]);
+  const actData = actEntries.map(([name,val])=>({name,val}));
+
+  ['pieActions'].forEach(id => {
+    const existing = Chart.getChart(document.getElementById(id));
+    if (existing) existing.destroy();
+  });
   new Chart(document.getElementById('pieActions').getContext('2d'), {
-    type:'pie', data:{labels:actData.map(d=>d.name), datasets:[{data:actData.map(d=>d.val), backgroundColor:actColors, borderWidth:2, borderColor:'#fff'}]},
+    type:'pie',
+    data:{labels:actData.map(d=>d.name), datasets:[{data:actData.map(d=>d.val), backgroundColor:actColors.slice(0,actData.length), borderWidth:2, borderColor:'#fff'}]},
     options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw}`}}}}
   });
   document.getElementById('legendActions').innerHTML = actData.map((d,i)=>
-    `<div class="legend-item"><div class="legend-dot" style="background:${actColors[i]}"></div>${d.name} (${d.val})</div>`).join('');
+    `<div class="legend-item"><div class="legend-dot" style="background:${actColors[i]||'#94a3b8'}"></div>${d.name} (${d.val})</div>`).join('');
 
-  // Natures
-  const natData = [{name:'Autres',val:1471},{name:'GMS',val:838},{name:'Restaurant',val:158},{name:'Grossiste',val:47},{name:'Hôtel',val:22}];
-  const natColors = ['#94a3b8','#3b82f6','#f97316','#f59e0b','#8b5cf6'];
+  // ── Natures ──
+  const natMap = {};
+  src.forEach(r => {
+    const n = r.nature || 'Autres';
+    natMap[n] = (natMap[n]||0) + 1;
+  });
+  const natColorMap = {'GMS':'#3b82f6','Grossiste':'#f59e0b','Restaurant':'#f97316','Hotel':'#8b5cf6','Hôtel':'#8b5cf6','Autres':'#94a3b8'};
+  const natEntries = Object.entries(natMap).sort((a,b)=>b[1]-a[1]);
+  const natData = natEntries.map(([name,val])=>({name,val}));
+  const natColors = natData.map(d=>natColorMap[d.name]||'#94a3b8');
+
+  ['pieNatures'].forEach(id => {
+    const existing = Chart.getChart(document.getElementById(id));
+    if (existing) existing.destroy();
+  });
   new Chart(document.getElementById('pieNatures').getContext('2d'), {
-    type:'doughnut', data:{labels:natData.map(d=>d.name), datasets:[{data:natData.map(d=>d.val), backgroundColor:natColors, borderWidth:2, borderColor:'#fff'}]},
+    type:'doughnut',
+    data:{labels:natData.map(d=>d.name), datasets:[{data:natData.map(d=>d.val), backgroundColor:natColors, borderWidth:2, borderColor:'#fff'}]},
     options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw}`}}}}
   });
   document.getElementById('legendNatures').innerHTML = natData.map((d,i)=>
@@ -1554,12 +1582,12 @@ function applyDateFilter() {
 
   if (!gpsFiltered.length) {
     updateDashboardKPIs(0,0,0,0,0);
-    rebuildCharts(); renderStaffTable();
+    rebuildCharts([]); renderStaffTable();
     filteredClients = []; renderClientTable(); return;
   }
 
   updateDashboardKPIs(gpsFiltered.length, totCartons, totMontant, nbStaffs, nbCibles);
-  rebuildCharts(); renderStaffTable();
+  rebuildCharts(gpsFiltered); renderStaffTable();
 
   // ── Filtrer aussi CLIENTS pour la table clients ──
   const filteredClients2 = CLIENTS.filter(r => {
@@ -1589,7 +1617,7 @@ function updateDashboardFilterInfo(range, count) {
 // ══════════════════════════════════════════════════════════════
 // REBUILD CHARTS (appelé après chaque chargement API)
 // ══════════════════════════════════════════════════════════════
-function rebuildCharts() {
+function rebuildCharts(gpsFiltered) {
   // Détruire les anciens graphiques s'ils existent
   if(lineChart) { lineChart.destroy(); lineChart = null; }
   if(barChart)  { barChart.destroy();  barChart = null; }
@@ -1602,7 +1630,7 @@ function rebuildCharts() {
   });
   initLineChart();
   initBarChart();
-  initPieCharts();
+  initPieCharts(gpsFiltered); // passe les données filtrées aux pie charts
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2164,9 +2192,12 @@ function renderSuiviTable() {
   const dateFrom = (document.getElementById('suivi-date-from')||{}).value || '';
   const dateTo   = (document.getElementById('suivi-date-to')||{}).value   || '';
 
-  // Filtrer les données avec cartons > 0
+  // Filtrer les données avec cartons > 0 OU montant > 0 (recouvrement)
   const rows = GPS_DATA.filter(r => {
-    if (!(r.cartons > 0)) return false;
+    if (!(r.cartons > 0) && !(r.valeur > 0)) return false;
+    // Garder seulement les lignes liées à des ventes (pas les simples visites)
+    const sv = (r.si_vente||'').toLowerCase();
+    if (!sv) return false;
     if (staffVal && r.staff !== staffVal) return false;
     if (dateFrom && r.date < dateFrom) return false;
     if (dateTo   && r.date > dateTo)   return false;
