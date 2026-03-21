@@ -795,7 +795,7 @@
               <th style="text-align:right;color:#ef4444">💸 Montant LNP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
               <th style="text-align:right;color:#f59e0b">📦 Payé non livré<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
               <th style="text-align:right;color:#f59e0b">💵 Montant PNL<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
-              <th style="text-align:right;color:#8b5cf6">🔄 Recouvrement<br><span style="font-size:9px;font-weight:400">(montant perçu)</span></th>
+              <th style="text-align:right;color:#8b5cf6">🔄 Recouvrement<br><span style="font-size:9px;font-weight:400">cartons / montant</span></th>
               <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL cartons</th>
               <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL FCFA</th>
             </tr>
@@ -998,7 +998,7 @@ function processData(){}
               <th style="text-align:right;color:#ef4444">💸 Montant LNP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
               <th style="text-align:right;color:#f59e0b">📦 Payé non livré<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
               <th style="text-align:right;color:#f59e0b">💵 Montant PNL<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
-              <th style="text-align:right;color:#8b5cf6">🔄 Recouvrement<br><span style="font-size:9px;font-weight:400">(montant perçu)</span></th>
+              <th style="text-align:right;color:#8b5cf6">🔄 Recouvrement<br><span style="font-size:9px;font-weight:400">cartons / montant</span></th>
               <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL cartons</th>
               <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL FCFA</th>
             </tr>
@@ -2312,19 +2312,23 @@ function renderSuiviTable() {
       date:r.date, staff:r.staff||'',
       lp_c:0, lp_m:0,
       lnp_c:0, lnp_m:0,
-      pnl_c:0, pnl_m:0,
-      rec_m:0          // recouvrement : montant seulement
+      pnl_c:0, pnl_m:0,   // Payé non livré SANS recouvrement
+      rec_c:0, rec_m:0     // Payé non livré (recouvrement) : cartons + montant
     };
     const vn = norm(r.si_vente);
     const c  = r.cartons || 0;
     const m  = r.valeur  || 0;
     if (vn.includes('recouvrement')) {
-      map[key].rec_m += m;
+      // "Payé non livré (recouvrement)" → cartons ET montant dans colonne recouvrement
+      map[key].rec_c += c; map[key].rec_m += m;
     } else if (vn.includes('paye non livr') || vn.includes('pay non livr')) {
+      // "Payé non livré" simple → colonne PNL
       map[key].pnl_c += c; map[key].pnl_m += m;
     } else if (vn.includes('livr') && vn.includes('non pay')) {
+      // "Livré non payé" et variantes
       map[key].lnp_c += c; map[key].lnp_m += m;
     } else if (vn.includes('livr') && (vn.includes('pay') || vn.includes('cash'))) {
+      // "Livré payé" et "Livré payé (cash)"
       map[key].lp_c += c; map[key].lp_m += m;
     } else {
       map[key].lp_c += c; map[key].lp_m += m;
@@ -2335,21 +2339,21 @@ function renderSuiviTable() {
     a.date !== b.date ? a.date.localeCompare(b.date) : a.staff.localeCompare(b.staff));
 
   // Totaux
-  let tot = {lp_c:0,lp_m:0,lnp_c:0,lnp_m:0,pnl_c:0,pnl_m:0,rec_m:0};
+  let tot = {lp_c:0,lp_m:0,lnp_c:0,lnp_m:0,pnl_c:0,pnl_m:0,rec_c:0,rec_m:0};
   entries.forEach(e => {
     tot.lp_c+=e.lp_c; tot.lp_m+=e.lp_m;
     tot.lnp_c+=e.lnp_c; tot.lnp_m+=e.lnp_m;
     tot.pnl_c+=e.pnl_c; tot.pnl_m+=e.pnl_m;
-    tot.rec_m+=e.rec_m;
+    tot.rec_c+=e.rec_c; tot.rec_m+=e.rec_m;
   });
-  const totC = tot.lp_c + tot.lnp_c + tot.pnl_c;
+  const totC = tot.lp_c + tot.lnp_c + tot.pnl_c + tot.rec_c;
   const totM = tot.lp_m + tot.lnp_m + tot.pnl_m + tot.rec_m;
 
   const se = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
   se('suivi-total-lp',  '✅ LP: '  + tot.lp_c.toFixed(2)  + ' ctn');
   se('suivi-total-lnp', '⏳ LNP: ' + tot.lnp_c.toFixed(2) + ' ctn');
   se('suivi-total-pnl', '📦 PNL: ' + tot.pnl_c.toFixed(2) + ' ctn');
-  se('suivi-total-all', '🔵 TOTAL: '+ totC.toFixed(2)      + ' ctn');
+  se('suivi-total-all', '🔵 TOTAL: '+ totC.toFixed(2) + ' ctn (dont 🔄 ' + tot.rec_c.toFixed(2) + ' recouvr.)');
 
   const fC = n => n>0 ? `<strong>${n.toFixed(2)}</strong>` : '<span style="color:#cbd5e1">—</span>';
   const fM = n => n>0 ? new Intl.NumberFormat('fr-FR').format(Math.round(n)) : '<span style="color:#cbd5e1">—</span>';
@@ -2366,7 +2370,7 @@ function renderSuiviTable() {
       <td style="text-align:right;font-size:12px;color:#ef4444">${fM(e.lnp_m)}</td>
       <td style="text-align:right;color:#f59e0b">${fC(e.pnl_c)}</td>
       <td style="text-align:right;font-size:12px;color:#f59e0b">${fM(e.pnl_m)}</td>
-      <td style="text-align:right;font-size:12px;color:#8b5cf6;font-weight:600">${fM(e.rec_m)}</td>
+      <td style="text-align:right;color:#8b5cf6">${fC(e.rec_c)}<br><span style="font-size:11px;font-weight:600;color:#8b5cf6">${fM(e.rec_m)}</span></td>
       <td style="text-align:right;font-weight:700;color:#3b82f6">${fC(totRowC)}</td>
       <td style="text-align:right;font-weight:700;color:#3b82f6;font-size:12px">${fM(totRowM)}</td>
     </tr>`;
@@ -2380,7 +2384,7 @@ function renderSuiviTable() {
     <td style="text-align:right;color:#ef4444;font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(tot.lnp_m))}</td>
     <td style="text-align:right;color:#f59e0b;font-weight:800">${tot.pnl_c.toFixed(2)}</td>
     <td style="text-align:right;color:#f59e0b;font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(tot.pnl_m))}</td>
-    <td style="text-align:right;color:#8b5cf6;font-weight:800;font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(tot.rec_m))}</td>
+    <td style="text-align:right;color:#8b5cf6;font-weight:800">${tot.rec_c.toFixed(2)}<br><span style="font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(tot.rec_m))}</span></td>
     <td style="text-align:right;color:#3b82f6;font-weight:800">${totC.toFixed(2)}</td>
     <td style="text-align:right;color:#3b82f6;font-weight:800;font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(totM))}</td>
   </tr>`;
