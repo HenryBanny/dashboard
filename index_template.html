@@ -2292,8 +2292,6 @@ function renderSuiviTable() {
   const dateFrom = (document.getElementById('suivi-date-from')||{}).value || '';
   const dateTo   = (document.getElementById('suivi-date-to')||{}).value   || '';
 
-  const norm = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-
   // Filtrer lignes pertinentes
   const rows = GPS_DATA.filter(r => {
     if (!r.si_vente) return false;
@@ -2315,22 +2313,20 @@ function renderSuiviTable() {
       pnl_c:0, pnl_m:0,   // Payé non livré SANS recouvrement
       rec_c:0, rec_m:0     // Payé non livré (recouvrement) : cartons + montant
     };
-    const vn = norm(r.si_vente);
+    const sv = (r.si_vente || '').trim();
     const c  = r.cartons || 0;
     const m  = r.valeur  || 0;
-    if (vn.includes('recouvrement')) {
-      // "Payé non livré (recouvrement)" → cartons ET montant dans colonne recouvrement
+    // Correspondance directe sur la valeur exacte de si_vente
+    if (sv === 'Payé non livré (recouvrement)') {
       map[key].rec_c += c; map[key].rec_m += m;
-    } else if (vn.includes('paye non livr') || vn.includes('pay non livr')) {
-      // "Payé non livré" simple → colonne PNL
+    } else if (sv === 'Payé non livré') {
       map[key].pnl_c += c; map[key].pnl_m += m;
-    } else if (vn.includes('livr') && vn.includes('non pay')) {
-      // "Livré non payé" et variantes
+    } else if (sv === 'Livré non payé' || sv === 'Livré non payé (dépôt vente)') {
       map[key].lnp_c += c; map[key].lnp_m += m;
-    } else if (vn.includes('livr') && (vn.includes('pay') || vn.includes('cash'))) {
-      // "Livré payé" et "Livré payé (cash)"
+    } else if (sv === 'Livré payé' || sv === 'Livré payé (cash)') {
       map[key].lp_c += c; map[key].lp_m += m;
     } else {
+      // Toute autre valeur → livré payé par défaut
       map[key].lp_c += c; map[key].lp_m += m;
     }
   });
