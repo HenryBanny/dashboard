@@ -477,15 +477,34 @@
 
     <!-- Tableau récap staff -->
     <div class="card">
-      <div class="card-title">Récapitulatif par staff</div>
+      <div class="chart-header" style="margin-bottom:12px">
+        <div class="card-title" style="margin-bottom:0">Récapitulatif par staff</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;gap:4px;background:#f1f5f9;border-radius:10px;padding:3px" id="staff-date-btns">
+            <button class="ctab-btn ctab-active" onclick="setStaffDateQuick('all',this)">Tout</button>
+            <button class="ctab-btn" onclick="setStaffDateQuick('7',this)">7j</button>
+            <button class="ctab-btn" onclick="setStaffDateQuick('30',this)">30j</button>
+            <button class="ctab-btn" onclick="setStaffDateQuick('month',this)">Ce mois</button>
+            <button class="ctab-btn" onclick="setStaffDateQuick('custom',this)">Personnalisé</button>
+          </div>
+          <div id="staff-custom-range" style="display:none;align-items:center;gap:6px">
+            <input type="date" id="staff-date-from" class="search-input" style="width:140px;padding:5px 8px;font-size:12px" onchange="renderStaffTable()">
+            <span style="font-size:12px;color:#64748b">au</span>
+            <input type="date" id="staff-date-to" class="search-input" style="width:140px;padding:5px 8px;font-size:12px" onchange="renderStaffTable()">
+          </div>
+          <select id="staff-staff-filter" onchange="renderStaffTable()" style="border:1px solid #e2e8f0;border-radius:8px;padding:5px 10px;font-size:12px;background:#fff">
+            <option value="">Tous les staffs</option>
+          </select>
+        </div>
+      </div>
       <div class="table-wrap">
         <table id="staffTable">
           <thead>
             <tr>
               <th>Staff</th>
-              <th>Activités</th>
-              <th>Cartons</th>
-              <th>Montant FCFA</th>
+              <th style="text-align:center">Activités</th>
+              <th style="text-align:center">Cartons</th>
+              <th style="text-align:right">Montant FCFA</th>
             </tr>
           </thead>
           <tbody id="staffTableBody"></tbody>
@@ -768,16 +787,11 @@
         <table id="suiviTable">
           <thead>
             <tr>
-              <th style="width:110px">Date</th>
+              <th style="width:100px">Date</th>
               <th style="width:160px">Staff</th>
-              <th style="text-align:right;color:#10b981">✅ Livré payé<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
-              <th style="text-align:right;color:#10b981">💰 Montant LP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
-              <th style="text-align:right;color:#ef4444">⏳ Livré non payé<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
-              <th style="text-align:right;color:#ef4444">💸 Montant LNP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
-              <th style="text-align:right;color:#f59e0b">📦 Payé non livré<br><span style="font-size:9px;font-weight:400">(cartons — hors recouvrement)</span></th>
-              <th style="text-align:right;color:#f59e0b">💵 Montant PNL<br><span style="font-size:9px;font-weight:400">(FCFA — recouvrement inclus)</span></th>
-              <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL cartons</th>
-              <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL FCFA</th>
+              <th style="width:200px">Type de vente</th>
+              <th style="text-align:right">Cartons</th>
+              <th style="text-align:right">Montant FCFA</th>
             </tr>
           </thead>
           <tbody id="suiviTableBody"></tbody>
@@ -970,16 +984,11 @@ function processData(){}
         <table id="suiviTable">
           <thead>
             <tr>
-              <th style="width:110px">Date</th>
+              <th style="width:100px">Date</th>
               <th style="width:160px">Staff</th>
-              <th style="text-align:right;color:#10b981">✅ Livré payé<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
-              <th style="text-align:right;color:#10b981">💰 Montant LP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
-              <th style="text-align:right;color:#ef4444">⏳ Livré non payé<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
-              <th style="text-align:right;color:#ef4444">💸 Montant LNP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
-              <th style="text-align:right;color:#f59e0b">📦 Payé non livré<br><span style="font-size:9px;font-weight:400">(cartons — hors recouvrement)</span></th>
-              <th style="text-align:right;color:#f59e0b">💵 Montant PNL<br><span style="font-size:9px;font-weight:400">(FCFA — recouvrement inclus)</span></th>
-              <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL cartons</th>
-              <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL FCFA</th>
+              <th style="width:200px">Type de vente</th>
+              <th style="text-align:right">Cartons</th>
+              <th style="text-align:right">Montant FCFA</th>
             </tr>
           </thead>
           <tbody id="suiviTableBody"></tbody>
@@ -1184,24 +1193,97 @@ function initPieCharts(sourceData) {
 // ══════════════════════════════════════════════════════════════
 // STAFF TABLE
 // ══════════════════════════════════════════════════════════════
+
+let staffDateMode = 'all';
+
+function setStaffDateQuick(mode, btn) {
+  staffDateMode = mode;
+  document.querySelectorAll('#staff-date-btns .ctab-btn').forEach(b => b.classList.remove('ctab-active'));
+  btn.classList.add('ctab-active');
+  const cr = document.getElementById('staff-custom-range');
+  if (cr) cr.style.display = mode === 'custom' ? 'flex' : 'none';
+  if (mode !== 'custom') renderStaffTable();
+}
+
+function getStaffDateRange() {
+  const today = new Date(); today.setHours(23,59,59,999);
+  if (staffDateMode === 'all') return null;
+  if (staffDateMode === 'custom') {
+    const f = document.getElementById('staff-date-from').value;
+    const t = document.getElementById('staff-date-to').value;
+    if (!f || !t) return null;
+    return { from: new Date(f), to: new Date(t + 'T23:59:59') };
+  }
+  const from = new Date();
+  if (staffDateMode === '7')     from.setDate(today.getDate() - 7);
+  if (staffDateMode === '30')    from.setDate(today.getDate() - 30);
+  if (staffDateMode === 'month') from.setDate(1);
+  from.setHours(0,0,0,0);
+  return { from, to: today };
+}
+
 function renderStaffTable() {
-  // STAFF est déjà filtré par applyDateFilter/applyStaffFilter — pas besoin de refiltrer
-  const sorted = [...STAFF].sort((a,b)=>b.montant-a.montant);
-  const total = {activites:0, cartons:0, montant:0};
-  sorted.forEach(s=>{total.activites+=s.activites;total.cartons+=s.cartons;total.montant+=s.montant;});
-  document.getElementById('staffTableBody').innerHTML = sorted.map((s,i)=>`
+  // Initialiser le dropdown staff si vide
+  const staffSel = document.getElementById('staff-staff-filter');
+  if (staffSel && staffSel.options.length === 1) {
+    const staffNames = [...new Set(GPS_DATA.map(r=>r.staff).filter(Boolean))].sort();
+    staffNames.forEach(s => {
+      const o = document.createElement('option'); o.value = s; o.textContent = s;
+      staffSel.appendChild(o);
+    });
+  }
+
+  const staffVal = staffSel ? staffSel.value : '';
+  const range    = getStaffDateRange();
+
+  // Filtrer GPS_DATA avec les critères propres au récap staff
+  const filtered = GPS_DATA.filter(r => {
+    if (staffVal && r.staff !== staffVal) return false;
+    if (!range) return true;
+    if (!r.date) return false;
+    const d = new Date(r.date);
+    return !isNaN(d) && d >= range.from && d <= range.to;
+  });
+
+  // Agréger par staff
+  const staffMap = {};
+  filtered.forEach(r => {
+    const n = r.staff || ''; if (!n || n === 'nan') return;
+    if (!staffMap[n]) staffMap[n] = {
+      name: n, activites: 0, cartons: 0, montant: 0,
+      color: STAFF_COLOR_MAP[n] || '#94a3b8'
+    };
+    staffMap[n].activites++;
+    staffMap[n].cartons += r.cartons || 0;
+    staffMap[n].montant += r.valeur  || 0;
+  });
+
+  const sorted = Object.values(staffMap).sort((a,b) => b.montant - a.montant);
+  const total  = {activites:0, cartons:0, montant:0};
+  sorted.forEach(s => {
+    total.activites += s.activites;
+    total.cartons   += s.cartons;
+    total.montant   += s.montant;
+  });
+
+  const rows = sorted.map(s => `
     <tr>
       <td><span class="staff-dot" style="background:${s.color}"></span><strong>${s.name}</strong></td>
-      <td>${badge(s.activites,'#3b82f6')}</td>
-      <td>${badge(parseFloat(s.cartons.toFixed(2)),'#10b981')}</td>
-      <td style="font-weight:700;color:#f59e0b">${fmtFcfa(s.montant)}</td>
-    </tr>`).join('') +
-    `<tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e2e8f0">
-      <td style="color:#1e293b">TOTAL</td>
-      <td>${badge(total.activites,'#3b82f6')}</td>
-      <td>${badge(Math.round(total.cartons*100)/100,'#10b981')}</td>
-      <td style="font-weight:800;color:#f59e0b">${fmtFcfa(total.montant)}</td>
+      <td style="text-align:center">${badge(s.activites,'#3b82f6')}</td>
+      <td style="text-align:center">${badge(parseFloat(s.cartons.toFixed(2)),'#10b981')}</td>
+      <td style="text-align:right;font-weight:700;color:#f59e0b">${fmtFcfa(s.montant)}</td>
+    </tr>`).join('');
+
+  const totalRow = `
+    <tr style="background:#f0f9ff;font-weight:700;border-top:2px solid #3b82f6">
+      <td style="color:#1e293b;font-weight:800">TOTAL (${filtered.length} activités)</td>
+      <td style="text-align:center">${badge(total.activites,'#3b82f6')}</td>
+      <td style="text-align:center">${badge(parseFloat(total.cartons.toFixed(2)),'#10b981')}</td>
+      <td style="text-align:right;font-weight:800;color:#f59e0b">${fmtFcfa(total.montant)}</td>
     </tr>`;
+
+  document.getElementById('staffTableBody').innerHTML =
+    (rows || '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px">Aucune donnée sur cette période</td></tr>') + totalRow;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2137,6 +2219,12 @@ document.addEventListener('DOMContentLoaded', function(){
   if(typeof initBarChart==='function')   initBarChart();
   if(typeof initPieCharts==='function')  initPieCharts();
   if(typeof renderStaffTable==='function')  renderStaffTable();
+  // Initialiser le dropdown staff du récap staff
+  const staffSel2 = document.getElementById('staff-staff-filter');
+  if (staffSel2 && staffSel2.options.length === 1) {
+    const sn2 = [...new Set(GPS_DATA.map(r=>r.staff).filter(Boolean))].sort();
+    sn2.forEach(s => { const o=document.createElement('option'); o.value=s; o.textContent=s; staffSel2.appendChild(o); });
+  }
   if(typeof renderClientTable==='function') renderClientTable();
   if(typeof cRenderTable==='function')      cRenderTable();
 });
@@ -2192,107 +2280,119 @@ function renderSuiviTable() {
   const dateFrom = (document.getElementById('suivi-date-from')||{}).value || '';
   const dateTo   = (document.getElementById('suivi-date-to')||{}).value   || '';
 
-  // Filtrer les données avec cartons > 0 OU montant > 0 (recouvrement)
+  // Normaliser une chaîne pour comparaison sans accents
+  const norm = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+
+  // Filtrer les lignes avec une valeur de vente
   const rows = GPS_DATA.filter(r => {
+    if (!r.si_vente) return false;
     if (!(r.cartons > 0) && !(r.valeur > 0)) return false;
-    // Garder seulement les lignes liées à des ventes (pas les simples visites)
-    const sv = (r.si_vente||'').toLowerCase();
-    if (!sv) return false;
     if (staffVal && r.staff !== staffVal) return false;
     if (dateFrom && r.date < dateFrom) return false;
     if (dateTo   && r.date > dateTo)   return false;
     return true;
   });
 
-  // Agréger par date + staff
+  // Agréger par date + staff + catégorie (4 catégories)
+  // Clé : date || staff || categorie
   const map = {};
+  const addRow = (date, staff, cat, c, m) => {
+    const key = date + '||' + staff + '||' + cat;
+    if (!map[key]) map[key] = {date, staff, cat, cartons:0, montant:0};
+    map[key].cartons += c;
+    map[key].montant += m;
+  };
+
   rows.forEach(r => {
-    const key = r.date + '||' + (r.staff||'');
-    if (!map[key]) map[key] = {
-      date: r.date, staff: r.staff||'',
-      lp_c:0, lp_m:0,   // livré payé
-      lnp_c:0, lnp_m:0, // livré non payé
-      pnl_c:0, pnl_m:0  // payé non livré
-    };
-    const v = r.si_vente || '';
-    const c = r.cartons  || 0;
-    const m = r.valeur   || 0;
-    // Catégorisation — comparaison sans accents pour fiabilité JS
-    const vNorm = v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-    if (vNorm.includes('recouvrement')) {
-      // "Payé non livré (recouvrement)" = encaissement → montant seulement, PAS de cartons
-      map[key].pnl_m += m;
-    } else if (vNorm.includes('paye non livr') || vNorm.includes('pay non livr')) {
-      // "Payé non livré" = commande payée non encore livrée → cartons + montant
-      map[key].pnl_c += c; map[key].pnl_m += m;
-    } else if (vNorm.includes('livr') && vNorm.includes('non pay')) {
-      // "Livré non payé" et "Livré non payé (dépôt vente)"
-      map[key].lnp_c += c; map[key].lnp_m += m;
-    } else if (vNorm.includes('livr') && (vNorm.includes('pay') || vNorm.includes('cash'))) {
-      // "Livré payé" et "Livré payé (cash)"
-      map[key].lp_c += c; map[key].lp_m += m;
+    const vn = norm(r.si_vente);
+    const c  = r.cartons || 0;
+    const m  = r.valeur  || 0;
+    const d  = r.date    || '';
+    const s  = r.staff   || '';
+
+    if (vn.includes('recouvrement')) {
+      // Recouvrement = ligne séparée, montant seulement (cartons saisis ignorés)
+      addRow(d, s, 'recouvrement', 0, m);
+    } else if (vn.includes('paye non livr') || vn.includes('pay non livr')) {
+      addRow(d, s, 'pnl', c, m);
+    } else if (vn.includes('livr') && vn.includes('non pay')) {
+      addRow(d, s, 'lnp', c, m);
+    } else if (vn.includes('livr') && (vn.includes('pay') || vn.includes('cash'))) {
+      addRow(d, s, 'lp', c, m);
     } else {
-      // Non catégorisé → livré payé par défaut
-      map[key].lp_c += c; map[key].lp_m += m;
+      addRow(d, s, 'lp', c, m);
     }
   });
 
+  // Trier : date asc, staff asc, catégorie (ordre fixe)
+  const catOrder = {lp:0, lnp:1, pnl:2, recouvrement:3};
+  const catLabel = {
+    lp:           {label:'✅ Livré payé',               color:'#10b981', bg:'#f0fdf4'},
+    lnp:          {label:'⏳ Livré non payé',            color:'#ef4444', bg:'#fef2f2'},
+    pnl:          {label:'📦 Payé non livré',            color:'#f59e0b', bg:'#fffbeb'},
+    recouvrement: {label:'🔄 Recouvrement',              color:'#8b5cf6', bg:'#f5f3ff'},
+  };
+
   const entries = Object.values(map).sort((a,b) => {
-    if (a.date !== b.date) return a.date.localeCompare(b.date);
-    return a.staff.localeCompare(b.staff);
+    if (a.date !== b.date)   return a.date.localeCompare(b.date);
+    if (a.staff !== b.staff) return a.staff.localeCompare(b.staff);
+    return (catOrder[a.cat]||9) - (catOrder[b.cat]||9);
   });
 
-  // Totaux globaux
-  let tot = {lp_c:0,lp_m:0,lnp_c:0,lnp_m:0,pnl_c:0,pnl_m:0};
+  // Totaux par catégorie
+  const tot = {lp:{c:0,m:0}, lnp:{c:0,m:0}, pnl:{c:0,m:0}, recouvrement:{c:0,m:0}};
   entries.forEach(e => {
-    tot.lp_c+=e.lp_c; tot.lp_m+=e.lp_m;
-    tot.lnp_c+=e.lnp_c; tot.lnp_m+=e.lnp_m;
-    tot.pnl_c+=e.pnl_c; tot.pnl_m+=e.pnl_m;
+    if (tot[e.cat]) { tot[e.cat].c += e.cartons; tot[e.cat].m += e.montant; }
   });
-  const totC = tot.lp_c+tot.lnp_c+tot.pnl_c;
-  const totM = tot.lp_m+tot.lnp_m+tot.pnl_m;
+  const totC = tot.lp.c + tot.lnp.c + tot.pnl.c; // recouvrement exclu des cartons
+  const totM = tot.lp.m + tot.lnp.m + tot.pnl.m + tot.recouvrement.m;
 
-  // Afficher les totaux dans le header
+  // Résumé dans le header
   const se = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
-  se('suivi-total-lp',  '✅ LP: ' + Math.round(tot.lp_c*100)/100 + ' ctn');
-  se('suivi-total-lnp', '⏳ LNP: ' + Math.round(tot.lnp_c*100)/100 + ' ctn');
-  se('suivi-total-pnl', '📦 PNL: ' + Math.round(tot.pnl_c*100)/100 + ' ctn');
-  se('suivi-total-all', '🔵 TOTAL: ' + Math.round(totC*100)/100 + ' ctn');
-
-  const COLORS = {lp:'#10b981', lnp:'#ef4444', pnl:'#f59e0b'};
+  se('suivi-total-lp',  '✅ LP: '  + tot.lp.c.toFixed(2)  + ' ctn');
+  se('suivi-total-lnp', '⏳ LNP: ' + tot.lnp.c.toFixed(2) + ' ctn');
+  se('suivi-total-pnl', '📦 PNL: ' + tot.pnl.c.toFixed(2) + ' ctn');
+  se('suivi-total-all', '🔵 TOTAL: '+ totC.toFixed(2)      + ' ctn');
 
   // Générer les lignes
-  let html = entries.map((e,i) => {
-    const totRowC = e.lp_c + e.lnp_c + e.pnl_c;
-    const totRowM = e.lp_m + e.lnp_m + e.pnl_m;
-    return `<tr>
-      <td style="font-size:12px;color:#64748b;white-space:nowrap">${e.date}</td>
-      <td style="font-size:12px">${e.staff}</td>
-      <td style="text-align:right;color:#10b981">${fmtC(e.lp_c)}</td>
-      <td style="text-align:right;font-size:12px;color:#10b981">${fmtM(e.lp_m)}</td>
-      <td style="text-align:right;color:#ef4444">${fmtC(e.lnp_c)}</td>
-      <td style="text-align:right;font-size:12px;color:#ef4444">${fmtM(e.lnp_m)}</td>
-      <td style="text-align:right;color:#f59e0b">${fmtC(e.pnl_c)}</td>
-      <td style="text-align:right;font-size:12px;color:#f59e0b">${fmtM(e.pnl_m)}</td>
-      <td style="text-align:right;font-weight:700;color:#3b82f6">${fmtC(totRowC)}</td>
-      <td style="text-align:right;font-weight:700;color:#3b82f6;font-size:12px">${fmtM(totRowM)}</td>
+  let prevDate = '', prevStaff = '';
+  const htmlRows = entries.map(e => {
+    const cl   = catLabel[e.cat] || {label:e.cat, color:'#64748b', bg:'#f8fafc'};
+    const showDateStaff = (e.date !== prevDate || e.staff !== prevStaff);
+    prevDate  = e.date;
+    prevStaff = e.staff;
+    const cartonCell = e.cartons > 0
+      ? `<strong style="color:${cl.color}">${e.cartons.toFixed(2)}</strong>`
+      : `<span style="color:#cbd5e1">—</span>`;
+    const montantCell = e.montant > 0
+      ? `<span style="color:${cl.color}">${new Intl.NumberFormat('fr-FR').format(Math.round(e.montant))}</span>`
+      : `<span style="color:#cbd5e1">—</span>`;
+    return `<tr style="background:${showDateStaff ? '#fff' : '#fafafa'}">
+      <td style="font-size:12px;color:#64748b;white-space:nowrap">${showDateStaff ? e.date : ''}</td>
+      <td style="font-size:12px;font-weight:${showDateStaff?'600':'400'}">${showDateStaff ? e.staff : ''}</td>
+      <td><span style="background:${cl.bg};color:${cl.color};padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600;white-space:nowrap">${cl.label}</span></td>
+      <td style="text-align:right">${cartonCell}</td>
+      <td style="text-align:right">${montantCell}</td>
     </tr>`;
   }).join('');
 
-  // Ligne de total
-  html += `<tr style="background:#f0f9ff;border-top:2px solid #3b82f6;font-weight:700">
+  // Ligne de total général
+  const totalRow = `<tr style="background:#f0f9ff;border-top:2px solid #3b82f6;font-weight:700">
     <td colspan="2" style="font-weight:800;color:#1e293b">TOTAL GÉNÉRAL</td>
-    <td style="text-align:right;color:#10b981;font-weight:800">${Math.round(tot.lp_c*100)/100}</td>
-    <td style="text-align:right;color:#10b981;font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(tot.lp_m))}</td>
-    <td style="text-align:right;color:#ef4444;font-weight:800">${Math.round(tot.lnp_c*100)/100}</td>
-    <td style="text-align:right;color:#ef4444;font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(tot.lnp_m))}</td>
-    <td style="text-align:right;color:#f59e0b;font-weight:800">${Math.round(tot.pnl_c*100)/100}</td>
-    <td style="text-align:right;color:#f59e0b;font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(tot.pnl_m))}</td>
-    <td style="text-align:right;color:#3b82f6;font-weight:800">${Math.round(totC*100)/100}</td>
-    <td style="text-align:right;color:#3b82f6;font-size:12px;font-weight:800">${new Intl.NumberFormat('fr-FR').format(Math.round(totM))}</td>
+    <td></td>
+    <td style="text-align:right;color:#3b82f6;font-weight:800">${totC.toFixed(2)} ctn</td>
+    <td style="text-align:right;color:#3b82f6;font-weight:800;font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(totM))} FCFA</td>
+  </tr>
+  <tr style="background:#f8fafc;font-size:12px;color:#64748b">
+    <td colspan="2"></td>
+    <td style="color:#10b981">✅ LP: ${tot.lp.c.toFixed(2)} ctn / ${new Intl.NumberFormat('fr-FR').format(Math.round(tot.lp.m))} F</td>
+    <td colspan="2" style="color:#ef4444">⏳ LNP: ${tot.lnp.c.toFixed(2)} ctn / ${new Intl.NumberFormat('fr-FR').format(Math.round(tot.lnp.m))} F &nbsp;|&nbsp;
+    <span style="color:#f59e0b">📦 PNL: ${tot.pnl.c.toFixed(2)} ctn</span> &nbsp;|&nbsp;
+    <span style="color:#8b5cf6">🔄 Recouvr.: ${new Intl.NumberFormat('fr-FR').format(Math.round(tot.recouvrement.m))} F</span></td>
   </tr>`;
 
-  document.getElementById('suiviTableBody').innerHTML = html || '<tr><td colspan="10" style="text-align:center;color:#94a3b8;padding:30px">Aucune vente de cartons sur cette période</td></tr>';
+  document.getElementById('suiviTableBody').innerHTML =
+    (htmlRows || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:30px">Aucune vente sur cette période</td></tr>') + totalRow;
 }
 
 // Initialiser quand on clique sur l'onglet
