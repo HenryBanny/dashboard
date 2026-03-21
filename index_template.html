@@ -787,11 +787,17 @@
         <table id="suiviTable">
           <thead>
             <tr>
-              <th style="width:100px">Date</th>
+              <th style="width:110px">Date</th>
               <th style="width:160px">Staff</th>
-              <th style="width:200px">Type de vente</th>
-              <th style="text-align:right">Cartons</th>
-              <th style="text-align:right">Montant FCFA</th>
+              <th style="text-align:right;color:#10b981">✅ Livré payé<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
+              <th style="text-align:right;color:#10b981">💰 Montant LP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
+              <th style="text-align:right;color:#ef4444">⏳ Livré non payé<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
+              <th style="text-align:right;color:#ef4444">💸 Montant LNP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
+              <th style="text-align:right;color:#f59e0b">📦 Payé non livré<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
+              <th style="text-align:right;color:#f59e0b">💵 Montant PNL<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
+              <th style="text-align:right;color:#8b5cf6">🔄 Recouvrement<br><span style="font-size:9px;font-weight:400">(montant perçu)</span></th>
+              <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL cartons</th>
+              <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL FCFA</th>
             </tr>
           </thead>
           <tbody id="suiviTableBody"></tbody>
@@ -984,11 +990,17 @@ function processData(){}
         <table id="suiviTable">
           <thead>
             <tr>
-              <th style="width:100px">Date</th>
+              <th style="width:110px">Date</th>
               <th style="width:160px">Staff</th>
-              <th style="width:200px">Type de vente</th>
-              <th style="text-align:right">Cartons</th>
-              <th style="text-align:right">Montant FCFA</th>
+              <th style="text-align:right;color:#10b981">✅ Livré payé<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
+              <th style="text-align:right;color:#10b981">💰 Montant LP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
+              <th style="text-align:right;color:#ef4444">⏳ Livré non payé<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
+              <th style="text-align:right;color:#ef4444">💸 Montant LNP<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
+              <th style="text-align:right;color:#f59e0b">📦 Payé non livré<br><span style="font-size:9px;font-weight:400">(cartons)</span></th>
+              <th style="text-align:right;color:#f59e0b">💵 Montant PNL<br><span style="font-size:9px;font-weight:400">(FCFA)</span></th>
+              <th style="text-align:right;color:#8b5cf6">🔄 Recouvrement<br><span style="font-size:9px;font-weight:400">(montant perçu)</span></th>
+              <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL cartons</th>
+              <th style="text-align:right;color:#3b82f6;font-weight:700">TOTAL FCFA</th>
             </tr>
           </thead>
           <tbody id="suiviTableBody"></tbody>
@@ -2280,10 +2292,9 @@ function renderSuiviTable() {
   const dateFrom = (document.getElementById('suivi-date-from')||{}).value || '';
   const dateTo   = (document.getElementById('suivi-date-to')||{}).value   || '';
 
-  // Normaliser une chaîne pour comparaison sans accents
   const norm = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 
-  // Filtrer les lignes avec une valeur de vente
+  // Filtrer lignes pertinentes
   const rows = GPS_DATA.filter(r => {
     if (!r.si_vente) return false;
     if (!(r.cartons > 0) && !(r.valeur > 0)) return false;
@@ -2293,106 +2304,89 @@ function renderSuiviTable() {
     return true;
   });
 
-  // Agréger par date + staff + catégorie (4 catégories)
-  // Clé : date || staff || categorie
+  // Agréger par date + staff
   const map = {};
-  const addRow = (date, staff, cat, c, m) => {
-    const key = date + '||' + staff + '||' + cat;
-    if (!map[key]) map[key] = {date, staff, cat, cartons:0, montant:0};
-    map[key].cartons += c;
-    map[key].montant += m;
-  };
-
   rows.forEach(r => {
+    const key = r.date + '||' + (r.staff||'');
+    if (!map[key]) map[key] = {
+      date:r.date, staff:r.staff||'',
+      lp_c:0, lp_m:0,
+      lnp_c:0, lnp_m:0,
+      pnl_c:0, pnl_m:0,
+      rec_m:0          // recouvrement : montant seulement
+    };
     const vn = norm(r.si_vente);
     const c  = r.cartons || 0;
     const m  = r.valeur  || 0;
-    const d  = r.date    || '';
-    const s  = r.staff   || '';
-
     if (vn.includes('recouvrement')) {
-      // Recouvrement = ligne séparée, montant seulement (cartons saisis ignorés)
-      addRow(d, s, 'recouvrement', 0, m);
+      map[key].rec_m += m;
     } else if (vn.includes('paye non livr') || vn.includes('pay non livr')) {
-      addRow(d, s, 'pnl', c, m);
+      map[key].pnl_c += c; map[key].pnl_m += m;
     } else if (vn.includes('livr') && vn.includes('non pay')) {
-      addRow(d, s, 'lnp', c, m);
+      map[key].lnp_c += c; map[key].lnp_m += m;
     } else if (vn.includes('livr') && (vn.includes('pay') || vn.includes('cash'))) {
-      addRow(d, s, 'lp', c, m);
+      map[key].lp_c += c; map[key].lp_m += m;
     } else {
-      addRow(d, s, 'lp', c, m);
+      map[key].lp_c += c; map[key].lp_m += m;
     }
   });
 
-  // Trier : date asc, staff asc, catégorie (ordre fixe)
-  const catOrder = {lp:0, lnp:1, pnl:2, recouvrement:3};
-  const catLabel = {
-    lp:           {label:'✅ Livré payé',               color:'#10b981', bg:'#f0fdf4'},
-    lnp:          {label:'⏳ Livré non payé',            color:'#ef4444', bg:'#fef2f2'},
-    pnl:          {label:'📦 Payé non livré',            color:'#f59e0b', bg:'#fffbeb'},
-    recouvrement: {label:'🔄 Recouvrement',              color:'#8b5cf6', bg:'#f5f3ff'},
-  };
+  const entries = Object.values(map).sort((a,b) =>
+    a.date !== b.date ? a.date.localeCompare(b.date) : a.staff.localeCompare(b.staff));
 
-  const entries = Object.values(map).sort((a,b) => {
-    if (a.date !== b.date)   return a.date.localeCompare(b.date);
-    if (a.staff !== b.staff) return a.staff.localeCompare(b.staff);
-    return (catOrder[a.cat]||9) - (catOrder[b.cat]||9);
-  });
-
-  // Totaux par catégorie
-  const tot = {lp:{c:0,m:0}, lnp:{c:0,m:0}, pnl:{c:0,m:0}, recouvrement:{c:0,m:0}};
+  // Totaux
+  let tot = {lp_c:0,lp_m:0,lnp_c:0,lnp_m:0,pnl_c:0,pnl_m:0,rec_m:0};
   entries.forEach(e => {
-    if (tot[e.cat]) { tot[e.cat].c += e.cartons; tot[e.cat].m += e.montant; }
+    tot.lp_c+=e.lp_c; tot.lp_m+=e.lp_m;
+    tot.lnp_c+=e.lnp_c; tot.lnp_m+=e.lnp_m;
+    tot.pnl_c+=e.pnl_c; tot.pnl_m+=e.pnl_m;
+    tot.rec_m+=e.rec_m;
   });
-  const totC = tot.lp.c + tot.lnp.c + tot.pnl.c; // recouvrement exclu des cartons
-  const totM = tot.lp.m + tot.lnp.m + tot.pnl.m + tot.recouvrement.m;
+  const totC = tot.lp_c + tot.lnp_c + tot.pnl_c;
+  const totM = tot.lp_m + tot.lnp_m + tot.pnl_m + tot.rec_m;
 
-  // Résumé dans le header
-  const se = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
-  se('suivi-total-lp',  '✅ LP: '  + tot.lp.c.toFixed(2)  + ' ctn');
-  se('suivi-total-lnp', '⏳ LNP: ' + tot.lnp.c.toFixed(2) + ' ctn');
-  se('suivi-total-pnl', '📦 PNL: ' + tot.pnl.c.toFixed(2) + ' ctn');
+  const se = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  se('suivi-total-lp',  '✅ LP: '  + tot.lp_c.toFixed(2)  + ' ctn');
+  se('suivi-total-lnp', '⏳ LNP: ' + tot.lnp_c.toFixed(2) + ' ctn');
+  se('suivi-total-pnl', '📦 PNL: ' + tot.pnl_c.toFixed(2) + ' ctn');
   se('suivi-total-all', '🔵 TOTAL: '+ totC.toFixed(2)      + ' ctn');
 
-  // Générer les lignes
-  let prevDate = '', prevStaff = '';
+  const fC = n => n>0 ? `<strong>${n.toFixed(2)}</strong>` : '<span style="color:#cbd5e1">—</span>';
+  const fM = n => n>0 ? new Intl.NumberFormat('fr-FR').format(Math.round(n)) : '<span style="color:#cbd5e1">—</span>';
+
   const htmlRows = entries.map(e => {
-    const cl   = catLabel[e.cat] || {label:e.cat, color:'#64748b', bg:'#f8fafc'};
-    const showDateStaff = (e.date !== prevDate || e.staff !== prevStaff);
-    prevDate  = e.date;
-    prevStaff = e.staff;
-    const cartonCell = e.cartons > 0
-      ? `<strong style="color:${cl.color}">${e.cartons.toFixed(2)}</strong>`
-      : `<span style="color:#cbd5e1">—</span>`;
-    const montantCell = e.montant > 0
-      ? `<span style="color:${cl.color}">${new Intl.NumberFormat('fr-FR').format(Math.round(e.montant))}</span>`
-      : `<span style="color:#cbd5e1">—</span>`;
-    return `<tr style="background:${showDateStaff ? '#fff' : '#fafafa'}">
-      <td style="font-size:12px;color:#64748b;white-space:nowrap">${showDateStaff ? e.date : ''}</td>
-      <td style="font-size:12px;font-weight:${showDateStaff?'600':'400'}">${showDateStaff ? e.staff : ''}</td>
-      <td><span style="background:${cl.bg};color:${cl.color};padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600;white-space:nowrap">${cl.label}</span></td>
-      <td style="text-align:right">${cartonCell}</td>
-      <td style="text-align:right">${montantCell}</td>
+    const totRowC = e.lp_c + e.lnp_c + e.pnl_c;
+    const totRowM = e.lp_m + e.lnp_m + e.pnl_m + e.rec_m;
+    return `<tr>
+      <td style="font-size:12px;color:#64748b;white-space:nowrap">${e.date}</td>
+      <td style="font-size:12px">${e.staff}</td>
+      <td style="text-align:right;color:#10b981">${fC(e.lp_c)}</td>
+      <td style="text-align:right;font-size:12px;color:#10b981">${fM(e.lp_m)}</td>
+      <td style="text-align:right;color:#ef4444">${fC(e.lnp_c)}</td>
+      <td style="text-align:right;font-size:12px;color:#ef4444">${fM(e.lnp_m)}</td>
+      <td style="text-align:right;color:#f59e0b">${fC(e.pnl_c)}</td>
+      <td style="text-align:right;font-size:12px;color:#f59e0b">${fM(e.pnl_m)}</td>
+      <td style="text-align:right;font-size:12px;color:#8b5cf6;font-weight:600">${fM(e.rec_m)}</td>
+      <td style="text-align:right;font-weight:700;color:#3b82f6">${fC(totRowC)}</td>
+      <td style="text-align:right;font-weight:700;color:#3b82f6;font-size:12px">${fM(totRowM)}</td>
     </tr>`;
   }).join('');
 
-  // Ligne de total général
   const totalRow = `<tr style="background:#f0f9ff;border-top:2px solid #3b82f6;font-weight:700">
     <td colspan="2" style="font-weight:800;color:#1e293b">TOTAL GÉNÉRAL</td>
-    <td></td>
-    <td style="text-align:right;color:#3b82f6;font-weight:800">${totC.toFixed(2)} ctn</td>
-    <td style="text-align:right;color:#3b82f6;font-weight:800;font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(totM))} FCFA</td>
-  </tr>
-  <tr style="background:#f8fafc;font-size:12px;color:#64748b">
-    <td colspan="2"></td>
-    <td style="color:#10b981">✅ LP: ${tot.lp.c.toFixed(2)} ctn / ${new Intl.NumberFormat('fr-FR').format(Math.round(tot.lp.m))} F</td>
-    <td colspan="2" style="color:#ef4444">⏳ LNP: ${tot.lnp.c.toFixed(2)} ctn / ${new Intl.NumberFormat('fr-FR').format(Math.round(tot.lnp.m))} F &nbsp;|&nbsp;
-    <span style="color:#f59e0b">📦 PNL: ${tot.pnl.c.toFixed(2)} ctn</span> &nbsp;|&nbsp;
-    <span style="color:#8b5cf6">🔄 Recouvr.: ${new Intl.NumberFormat('fr-FR').format(Math.round(tot.recouvrement.m))} F</span></td>
+    <td style="text-align:right;color:#10b981;font-weight:800">${tot.lp_c.toFixed(2)}</td>
+    <td style="text-align:right;color:#10b981;font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(tot.lp_m))}</td>
+    <td style="text-align:right;color:#ef4444;font-weight:800">${tot.lnp_c.toFixed(2)}</td>
+    <td style="text-align:right;color:#ef4444;font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(tot.lnp_m))}</td>
+    <td style="text-align:right;color:#f59e0b;font-weight:800">${tot.pnl_c.toFixed(2)}</td>
+    <td style="text-align:right;color:#f59e0b;font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(tot.pnl_m))}</td>
+    <td style="text-align:right;color:#8b5cf6;font-weight:800;font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(tot.rec_m))}</td>
+    <td style="text-align:right;color:#3b82f6;font-weight:800">${totC.toFixed(2)}</td>
+    <td style="text-align:right;color:#3b82f6;font-weight:800;font-size:12px">${new Intl.NumberFormat('fr-FR').format(Math.round(totM))}</td>
   </tr>`;
 
   document.getElementById('suiviTableBody').innerHTML =
-    (htmlRows || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:30px">Aucune vente sur cette période</td></tr>') + totalRow;
+    (htmlRows || '<tr><td colspan="11" style="text-align:center;color:#94a3b8;padding:30px">Aucune vente sur cette période</td></tr>') + totalRow;
 }
 
 // Initialiser quand on clique sur l'onglet
